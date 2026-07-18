@@ -1,0 +1,1619 @@
+/* CV-Filter rejected row styling for applicants grid */
+.k-grid tr.cv-filter-rejected-row,
+.k-grid tr.cv-filter-rejected-row td,
+.k-grid tbody tr.cv-filter-rejected-row,
+.k-grid tbody tr.cv-filter-rejected-row td {
+    background-color: #ff6666 !important;
+    background: #ff6666 !important;
+}
+
+.k-grid tr.cv-filter-rejected-row:hover,
+.k-grid tr.cv-filter-rejected-row:hover td,
+.k-grid tbody tr.cv-filter-rejected-row:hover,
+.k-grid tbody tr.cv-filter-rejected-row:hover td {
+    background-color: #ff4d4d !important;
+    background: #ff4d4d !important;
+}
+
+/* Phone Number Validation Modal */
+.phone-validation-modal {
+    --width: 90vw;
+    --max-width: 100vh;
+    --height: 85vh;
+    --max-height: 75vh;
+    --min-height: 500px;
+    --border-radius: 24px;
+    --box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    --backdrop-opacity: 0.5;
+}
+
+.phone-validation-modal .modal-wrapper {
+    width: 90vw !important;
+    max-width: 600px !important;
+    height: 85vh !important;
+    max-height: 85vh !important;
+    min-height: 500px !important;
+    border-radius: 24px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    background: white;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* CV Filter modal */
+.cv-filter-modal {
+    --width: 90vw;
+    --max-width: 800px;
+    --height: 90vh;
+    --max-height: 90vh;
+    --border-radius: 16px;
+}
+
+.cv-filter-modal .modal-wrapper {
+    width: 90vw !important;
+    max-width: 800px;
+    height: 90vh !important;
+    border-radius: 16px;
+}
+
+/* External Job Offers modal */
+.external-job-offers-modal {
+    --width: 90vw;
+    --max-width: 900px;
+    --height: 90vh;
+    --max-height: 90vh;
+    --border-radius: 16px;
+}
+
+.external-job-offers-modal .modal-wrapper {
+    width: 90vw !important;
+    max-width: 900px;
+    height: 90vh !important;
+    border-radius: 16px;
+}
+
+/* CV Filter Help modal */
+.cv-filter-help-modal {
+    --width: 450px;
+    --max-width: 95vw;
+    --height: 650px;
+    --max-height: 90vh;
+    --border-radius: 16px;
+    --box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.cv-filter-help-modal .modal-wrapper {
+    width: 450px !important;
+    max-width: 95vw;
+    height: 650px !important;
+    max-height: 90vh;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* Larger modal for template selection */
+.modal-large .modal-wrapper {
+    width: 90vw !important;
+    max-width: 1200px;
+    height: 90vh !important;
+}
+
+/* Extra large modal for onboarding missions */
+.modal-extra-large .modal-wrapper {
+    width: 95vw !important;
+    max-width: 1400px;
+    height: 95vh !important;
+}
+
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+
+/* Core CSS required for Ionic components to work properly */
+
+@import "~@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+
+@import "~@ionic/angular/css/normalize.css";
+@import "~@ionic/angular/css/structure.css";
+@import "~@ionic/angular/css/typography.css";
+@import '~@ionic/angular/css/display.css';
+@import 'swiper/swiper-bundle.min.css';
+
+/* Optional CSS utils that can be commented out */
+
+@import "~@ionic/angular/css/padding.css";
+@import "~@ionic/angular/css/float-elements.css";
+@import "~@ionic/angular/css/text-alignment.css";
+@import "~@ionic/angular/css/text-transformation.css";
+@import "~@ionic/angular/css/flex-utils.css";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+@import './app/communication/workflow-builder/workflow-step-modal/workflow-step-modal.global.scss';
+// @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+
+/* Firebase Error Styles */
+@import "./app/styles/firebase-errors.scss";
+
+//inlining fonts to reduce ~240ms of load times
+@font-face {
+    font-family: 'Manrope';
+    font-style: normal;
+    font-weight: 200 800;
+    font-display: swap;
+    src: url("assets/fonts/manrope.woff2") format('woff2');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("assets/fonts/roboto-v50-latin-regular.woff2") format('woff2');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("assets/fonts/roboto-v50-latin-500.woff2") format('woff2');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("assets/fonts/roboto-v50-latin-700.woff2") format('woff2');
+}
+
+
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+:root {
+    --ion-default-font: 'Manrope', sans-serif !important;
+}
+
+.logo-modal-class {
+    --width: 90vw;
+    --height: auto;
+    --border-radius: 20px;
+    --max-width: 500px;
+    --max-height: 80vh;
+    --background: var(--ion-background-color);
+    overflow: hidden;
+}
+
+.my-modal-class {
+    .modal-wrapper {
+        height: 50%;
+        width: 90%;
+        border-radius: 15px;
+    }
+}
+
+.ai-workflow-modal {
+    --width: 90%;
+    --max-width: 900px;
+    --height: 85%;
+    --border-radius: 16px;
+}
+
+.ShowEmailContentModal {
+    .modal-wrapper {
+        --width: 90%;
+        --max-width: 90%;
+        --height: 80%;
+        --min-height: 80%;
+        --border-radius: 15px;
+        --box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+    }
+}
+
+ion-modal.showemailcontentmodal .modal-wrapper {
+    width: 90%;
+    max-width: 90%;
+    height: 80%;
+    min-height: 80%;
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+ion-content {
+    --background: #f6f6f6;
+    font-style: var(--ion-default-font);
+}
+
+// Fix for Ionic icons appearing as white blocks
+ion-icon {
+    color: inherit;
+    font-size: inherit;
+
+    &[name] {
+        display: inline-block;
+        vertical-align: middle;
+    }
+}
+
+.minimalWidth .alert-wrapper {
+    width: 400px;
+}
+
+.edit-message-modal {
+    &::part(content) {
+        border-radius: 15px;
+    }
+
+    --height: 52%; //Ray did it for testing out the modal flexibly
+    --box-shadow: 0 0 10px 0 rgba(0,
+        0,
+        0,
+        0.1);
+}
+
+.create-new-flowchart-modal {
+    &::part(content) {
+        border-radius: 15px;
+    }
+
+    --height: 300px; //Ray did it for testing out the modal flexibly
+    --width: 400px;
+    --box-shadow: 0 0 10px 0 rgba(0,
+        0,
+        0,
+        0.1);
+    border-radius: 10px;
+}
+
+.node-selection-modal {
+    &::part(content) {
+        border-radius: 15px;
+    }
+
+    --box-shadow: 0 0 10px 0 rgba(0,
+        0,
+        0,
+        0.1);
+}
+
+.add-node-popover-class {
+    &::part(content) {
+        border-radius: 15px;
+    }
+
+    --min-width: 600px !important;
+    --box-shadow: 0 0 10px 0 rgba(0,
+        0,
+        0,
+        0.1);
+}
+
+.emailModal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        max-width: 550px;
+        border-radius: 10px;
+        width: 50%;
+        min-height: 500px;
+        height: 70vh;
+        max-height: 80%;
+        margin: auto;
+    }
+
+    .ion-page {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    ion-content {
+        flex: 1;
+        --overflow: auto;
+    }
+}
+
+.deleteAccModal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        border-radius: 10px;
+        width: 500px;
+        height: 250px;
+        margin: auto;
+    }
+}
+
+.logoModal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        max-width: 550px;
+        border-radius: 10px;
+        width: 50%;
+        height: 50%;
+        margin: auto;
+    }
+}
+
+.emailEditorModal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        max-width: 85%;
+        border-radius: 16px;
+        width: 97%;
+        height: 97%;
+        margin: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+}
+
+.ApplicationInformationPageModal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        width: 90%;
+        height: 90%;
+        border-radius: 10px;
+        margin: auto;
+    }
+}
+
+.moreSettingsModal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        max-width: 250px;
+        border-radius: 10px;
+        width: 50%;
+        height: 40%;
+        margin: auto;
+    }
+}
+
+.deleteJobOfferModal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        max-width: 550px;
+        border-radius: 10px;
+        // width: 70%;
+        height: 40%;
+        margin: auto;
+    }
+}
+
+.create-job-offer-modal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        max-width: 85%;
+        border-radius: 16px;
+        width: 97%;
+        height: 97%;
+        margin: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+}
+
+.configureMessageModal {
+    &::part(content) {
+        backdrop-filter: blur(12px);
+        max-width: 550px;
+        border-radius: 10px;
+        // width: 70%;
+        height: 35%;
+        margin: auto;
+    }
+}
+
+.flowchart-dialog {
+    --width: 95% !important;
+    --height: 95% !important;
+}
+
+ion-header {
+    filter: drop-shadow(2px 4px 6px lightgray);
+    font-weight: 500 !important;
+}
+
+ion-modal {
+    --box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+}
+
+.toast-class {
+    --border-color: #e1e4ea;
+    --border-radius: 10px;
+    --border-style: solid;
+    --border-width: 1px;
+    --background-color: #ffffff;
+    --height: 70px;
+    --max-width: 510px;
+    z-index: 10009 !important;
+    margin-left: 34%;
+}
+
+.login-failed-toast {
+    top: 7%;
+    --border-radius: 10px;
+}
+
+button.alert-button.alert-button-confirm {
+    background-color: var(--ion-color-success);
+    color: var(--ion-color-success-contrast);
+    border-radius: 25px;
+}
+
+.draft-toast-class {
+    --border-color: #e1e4ea;
+    --border-radius: 10px;
+    --border-style: solid;
+    --border-width: 1px;
+    --background: #ffffff;
+    --height: 70px;
+    --width: 400px;
+    margin-left: 13%;
+    z-index: 10009 !important;
+}
+
+.kendoTest .k-button {
+    border-width: 0px !important;
+    border-style: none !important;
+    padding-bottom: 12px;
+    padding-right: 1px;
+}
+
+.kendoTest .k-tabstrip-items-wrapper {
+    background: #f6f6f6
+}
+
+.MatchingPopover {
+    --border-radius: 10px;
+    --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    --padding-top: 20px;
+    --padding-bottom: 20px;
+    --padding-start: 20px;
+    --padding-end: 20px;
+    --width: 90%;
+    --max-width: 600px;
+    --height: auto;
+    --min-height: 600px;
+}
+
+.ApplicantPopover {
+    &::part(content) {
+        backdrop-filter: blur(2px);
+        border-radius: 15px;
+        background: none;
+    }
+
+    --width: 85%;
+    --height: 85%;
+    backdrop-filter: blur(2px);
+    border-radius: 15px;
+}
+
+.notifications-center-modal {
+    --border-radius: 10px;
+    --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    --padding-top: 20px;
+    --padding-bottom: 20px;
+    --padding-start: 20px;
+    --padding-end: 20px;
+    --width: 1000px !important;
+    --min-height: 800px !important;
+}
+
+.important-messages-modal {
+    &::part(content) {
+        border-radius: 15px;
+        max-width: 800px;
+        max-height: 90vh;
+        margin: auto;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    }
+
+    --width: 90%;
+    --height: 80%;
+
+    @media (max-width: 768px) {
+        --width: 95%;
+        --height: 85%;
+
+        &::part(content) {
+            max-width: 100%;
+            border-radius: 12px;
+        }
+    }
+}
+
+.alertForChoosingWorkflows {
+    --max-width: 400px;
+    /* Set a maximum width */
+    /* Apply direct height properties */
+    min-height: 400px !important;
+    /* Enforce a minimum height */
+    height: auto !important;
+    /* Allow height to adjust based on content */
+    --padding-top: 20px;
+    --padding-bottom: 20px;
+    --padding-start: 20px;
+    --padding-end: 20px;
+    --background: #ffffff;
+    /* Set a white background */
+    --border-radius: 12px;
+    /* Rounded corners */
+    --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    /* Add shadow for depth */
+    overflow-y: auto;
+    /* Enable scrolling if content overflows */
+}
+
+.team-builder-modal {
+    --border-radius: 10px;
+    --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    --padding-top: 20px;
+    --padding-bottom: 20px;
+    --padding-start: 20px;
+    --padding-end: 20px;
+    --width: 1000px !important;
+    --min-height: 800px !important;
+}
+
+.customCompanyAlert {
+    --width: 90%;
+    /* Adjust the width as needed */
+    --max-width: 800px;
+    /* Set a maximum width */
+    /* Apply direct height properties */
+    min-height: 800px !important;
+    /* Enforce a minimum height */
+    height: auto !important;
+    /* Allow height to adjust based on content */
+    --padding-top: 20px;
+    --padding-bottom: 20px;
+    --padding-start: 20px;
+    --padding-end: 20px;
+    --background: #ffffff;
+    /* Set a white background */
+    --border-radius: 12px;
+    /* Rounded corners */
+    --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    /* Add shadow for depth */
+    overflow-y: auto;
+    /* Enable scrolling if content overflows */
+}
+
+
+/* Style the alert header */
+
+.customCompanyAlert .alert-header {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+
+/* Style the alert message */
+
+.customCompanyAlert .alert-message {
+    font-size: 1.1em;
+    color: #333333;
+}
+
+
+/* Style links within the alert */
+
+.customCompanyAlert .alert-message a {
+    color: #3880ff;
+    /* Ionic primary color */
+    text-decoration: none;
+}
+
+.customCompanyAlert .alert-message a:hover {
+    text-decoration: underline;
+}
+
+
+/* Grid Layout */
+
+.customCompanyAlert .company-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    /* Two columns: label and value */
+    gap: 10px 20px;
+    /* Row and column gaps */
+}
+
+.customCompanyAlert .label {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    color: #555555;
+}
+
+.customCompanyAlert .label .icon {
+    margin-right: 8px;
+    font-size: 1.2em;
+    /* Adjust emoji size */
+}
+
+
+/* Responsive Adjustments */
+
+@media (max-width: 800px) {
+    .customCompanyAlert {
+        --width: 95%;
+        --max-width: 95%;
+        /* Adjust height for smaller screens */
+        min-height: 800px !important;
+        height: auto !important;
+    }
+
+    .customCompanyAlert .company-details-grid {
+        grid-template-columns: 1fr;
+        /* Single column on small screens */
+    }
+
+    .customCompanyAlert .label,
+    .customCompanyAlert .value {
+        grid-column: span 2;
+        /* Span both columns */
+    }
+
+    .customCompanyAlert .label {
+        margin-top: 10px;
+        /* Add spacing for better readability */
+    }
+
+    .customCompanyAlert .label .icon {
+        margin-right: 0;
+        margin-bottom: 4px;
+    }
+}
+
+
+/* Responsive Adjustments */
+
+@media (max-width: 600px) {
+    .customCompanyAlert {
+        --width: 95%;
+        --max-width: 95%;
+    }
+
+    .customCompanyAlert .company-details-grid {
+        grid-template-columns: 1fr;
+        /* Single column on small screens */
+    }
+
+    .customCompanyAlert .label,
+    .customCompanyAlert .value {
+        grid-column: span 2;
+        /* Span both columns */
+    }
+
+    .customCompanyAlert .label {
+        margin-top: 10px;
+        /* Add spacing for better readability */
+    }
+
+    .customCompanyAlert .label .icon {
+        margin-right: 0;
+        margin-bottom: 4px;
+    }
+}
+
+
+/* Global styles for help icons */
+
+.help-popover {
+    --width: auto;
+    --max-width: 320px;
+    --min-width: 280px;
+}
+
+.help-popover .popover-content {
+    --background: var(--ion-color-light);
+}
+
+
+/* Ensure help icons don't interfere with existing layouts */
+
+app-help-icon {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+app-help-icon .help-icon-wrapper {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.test {
+    width: 300px;
+    font-size: 200px;
+}
+
+video-modal {
+    width: 80%;
+    height: 80%;
+}
+
+.video-img-answer-modal {
+    --border-radius: 12px !important;
+}
+
+ion-popover [popover]:not(:popover-open):not(dialog[open]) {
+    display: contents;
+}
+
+// --- CSS for the  Custom Ion Content
+.custom-ion-content {
+    &::part(scroll) {
+        overflow-y: hidden;
+    }
+
+    --background: #fff;
+}
+
+// --- CSS for the  Custom scrollable div
+.scrollableDiv {
+    height: 99%;
+    overflow-y: auto;
+    margin: 4px;
+    margin-left: 0 !important;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+
+/* Track - 白色背景，无阴影 */
+
+::-webkit-scrollbar-track {
+    background: #ffffff;
+    border-radius: 10px;
+}
+
+
+/* Handle - 灰色拖动条 */
+
+::-webkit-scrollbar-thumb {
+    background: #666666;
+    border-radius: 10px;
+}
+
+
+/* Handle on hover - 深灰色 */
+
+::-webkit-scrollbar-thumb:hover {
+    background: #AAAAAA;
+}
+
+/* Global scrollbar styles for ion-content (targets shadow DOM) */
+ion-content {
+    --scrollbar-width: 10px;
+}
+
+/* Target the inner scroll containers in ion-content */
+ion-content .inner-scroll,
+ion-content .scroll-content,
+ion-content .scroll-y {
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #ffffff;
+        border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #666666;
+        border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: #AAAAAA;
+    }
+}
+
+/* Specific styling for create-new-flowchart component's ion-content shadow DOM */
+app-create-new-flowchart ion-content .inner-scroll::-webkit-scrollbar,
+app-create-new-flowchart ion-content .scroll-content::-webkit-scrollbar,
+app-create-new-flowchart ion-content .scroll-y::-webkit-scrollbar {
+    width: 10px !important;
+}
+
+app-create-new-flowchart ion-content .inner-scroll::-webkit-scrollbar-track,
+app-create-new-flowchart ion-content .scroll-content::-webkit-scrollbar-track,
+app-create-new-flowchart ion-content .scroll-y::-webkit-scrollbar-track {
+    background: #ffffff !important;
+    border-radius: 10px !important;
+}
+
+app-create-new-flowchart ion-content .inner-scroll::-webkit-scrollbar-thumb,
+app-create-new-flowchart ion-content .scroll-content::-webkit-scrollbar-thumb,
+app-create-new-flowchart ion-content .scroll-y::-webkit-scrollbar-thumb {
+    background: #666666 !important;
+    border-radius: 10px !important;
+}
+
+app-create-new-flowchart ion-content .inner-scroll::-webkit-scrollbar-thumb:hover,
+app-create-new-flowchart ion-content .scroll-content::-webkit-scrollbar-thumb:hover,
+app-create-new-flowchart ion-content .scroll-y::-webkit-scrollbar-thumb:hover {
+    background: #AAAAAA !important;
+}
+
+div.k-grid-header {
+    padding: 0px 0px 0px 0px !important;
+    font-weight: 500 !important;
+}
+
+.k-tabstrip {
+    overflow-y: hidden !important;
+    // height: 100% !important;
+}
+
+.k-i-loading {
+    color: var(--ion-color-primary) !important;
+}
+
+.k-tabstrip-content.k-active,
+.k-tabstrip>.k-content.k-active {
+    overflow-y: hidden !important;
+}
+
+.k-grid {
+    color: #000 !important;
+    font-size: 12px !important;
+}
+
+.k-grid .k-header {
+    font-size: 14px !important;
+}
+
+.k-grid tbody tr {
+    height: 24px !important;
+    line-height: 14px !important;
+}
+
+.k-grid tbody td {
+    padding: 8px 8px 8px 8px !important;
+}
+
+.k-grid-content {
+    overflow-y: auto !important;
+}
+
+.k-tabstrip-items {
+    font-weight: 500 !important;
+    font-size: 15px !important;
+}
+
+.k-grid-norecords td {
+    padding: 0px !important;
+}
+
+.k-grid td:first-child {
+    // css for kendogrid first column used for job-offers & applicants for checkbox
+    padding: 0;
+    padding-top: 27px;
+    padding-left: 8px;
+}
+
+.k-loading-image::before {
+    // css for kendogrid loading image before used for job-offers & applicants
+    border-width: clamp(0.015em, 1.5px, 1.5px) !important;
+    font-size: 5em !important;
+    color: var(--ion-color-primary);
+    left: 45%;
+    top: 38%;
+}
+
+.k-checkbox-md {
+    // kendo checkbox size increase for job-offers & applicants
+    width: 23px !important;
+    height: 23px !important;
+}
+
+.k-loading-image::after {
+    // css for kendogrid loading image after used for job-offers & applicants
+    border-width: clamp(0.015em, 1.5px, 1.5px) !important;
+    font-size: 5em !important;
+    color: var(--ion-color-primary);
+    left: 45%;
+    top: 38%;
+}
+
+// Fix for missing Kendo Grid filter styling - compatibility fix for kendo-theme-default 5.0.0 with kendo-angular-grid 7.0.0
+// Compact filter inputs to fit properly in grid header space
+.k-grid .k-filtercell .k-textbox,
+.k-grid .k-filtercell .k-textbox-container,
+.k-grid .k-filtercell input {
+    border: 1px solid #c5c5c5 !important;
+    border-radius: 2px !important;
+    padding: 2px 4px !important;
+    font-size: 11px !important;
+    height: 22px !important;
+    line-height: 18px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.k-grid .k-filtercell .k-textbox:focus,
+.k-grid .k-filtercell input:focus {
+    border-color: var(--ion-color-primary) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 1px rgba(var(--ion-color-primary-rgb), 0.3) !important;
+}
+
+.k-grid .k-filtercell .k-dropdown {
+    border: 1px solid #c5c5c5 !important;
+    border-radius: 2px !important;
+    height: 22px !important;
+    width: 100% !important;
+    font-size: 11px !important;
+}
+
+.k-grid .k-filtercell .k-dropdown:focus {
+    border-color: var(--ion-color-primary) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 1px rgba(var(--ion-color-primary-rgb), 0.3) !important;
+}
+
+.k-grid .k-filtercell .k-dropdown .k-dropdown-wrap {
+    height: 20px !important;
+    line-height: 18px !important;
+    padding: 1px 4px !important;
+}
+
+// Additional filter styling fixes for filter row
+.k-grid .k-filter-row .k-dropdown-wrap {
+    border: 1px solid #c5c5c5 !important;
+    border-radius: 2px !important;
+    height: 22px !important;
+}
+
+.k-grid .k-filter-row .k-textbox {
+    border: 1px solid #c5c5c5 !important;
+    border-radius: 2px !important;
+    padding: 2px 4px !important;
+    height: 22px !important;
+    font-size: 11px !important;
+}
+
+// Fix for date filter custom component - make it more compact
+.k-grid-filter-cell-operators .k-dropdown {
+    border: 1px solid #c5c5c5 !important;
+    border-radius: 2px !important;
+    height: 22px !important;
+    min-width: 45px !important;
+    max-width: 60px !important;
+    font-size: 10px !important;
+}
+
+// Ensure filter row has appropriate height
+.k-grid .k-filter-row td {
+    height: 32px !important;
+    padding: 2px 4px !important;
+    vertical-align: middle !important;
+}
+
+// Fix for filter cell spacing
+.k-grid .k-filtercell {
+    padding: 2px 4px !important;
+}
+
+.walkthrough-popover-class {
+    .popover-content {
+        background: #1e1e2f;
+        color: #fff;
+        padding: 16px;
+    }
+
+    .walkthrough-container {
+        max-width: 250px;
+        text-align: left;
+    }
+}
+
+.split-pane-visible>.split-pane-side.collapsed {
+    min-width: 75px !important;
+    max-width: 75px !important;
+}
+
+// @font-face {
+//     font-family: "DejaVu Sans";                                      // this makes arabic work, but does not support hindi and malayalam
+//     src: url("/assets/fonts/DejaVuSans.ttf") format("truetype");
+//   }
+//.......................................................................................
+@font-face {
+    font-family: 'NotoSans-Regular';
+    src: url('/assets/fonts/NotoSans-Regular.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'NotoSansDevanagari-Regular';
+    src: url('/assets/fonts/NotoSansDevanagari-Regular.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'NotoSansSC-Regular';
+    src: url('/assets/fonts/NotoSansSC-Regular.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'NotoSansTC-Regular';
+    src: url('/assets/fonts/NotoSansTC-Regular.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'NotoSansMalayalam-Regular';
+    src: url('/assets/fonts/NotoSansMalayalam-Regular.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "DejaVu Sans"; // this makes arabic work, but does not support hindi and malayalam
+    src: url("/assets/fonts/DejaVuSans.ttf") format("truetype");
+    font-weight: 500;
+    font-style: normal;
+}
+
+// @font-face {
+//     font-family: 'NotoSansArabic-Regular';
+//     src: url('/assets/fonts/NotoSansArabic-Regular.ttf') format('truetype');
+//     font-weight: 500;
+//     font-style: normal;
+// }
+//.......................................................................................
+// @font-face {
+//     font-family: 'NotoSansMalayalam-Regular';
+//     src: url('/assets/fonts/NotoSansMalayalam-Regular.ttf') format('truetype');
+//     font-weight: normal;
+//     font-style: normal;
+// }
+// @font-face {
+//     font-family: 'NotoSansArabic-Variable';
+//     src: url('/assets/fonts/NotoSansArabic-VariableFont_wdth,wght.ttf') format('truetype');
+//     font-weight: 400;
+//     font-style: normal;
+// }
+// @font-face {
+//     font-family: 'NotoSansMalayalam-Regular';
+//     src: url('/assets/fonts/NotoSansMalayalam-Regular.ttf') format('truetype');
+//     font-weight: normal;
+//     font-style: normal;
+// }
+.k-calendar .k-nav-today,
+.k-calendar .k-calendar-nav-today {
+    color: #072966;
+    font-weight: 900;
+}
+
+.k-calendar .k-calendar-view .k-today {
+    color: #072966;
+    font-weight: 900;
+}
+
+.k-calendar .k-calendar-td.k-selected .k-calendar-cell-inner,
+.k-calendar .k-calendar-td.k-selected .k-link {
+    background-color: #072966;
+}
+
+.k-calendar .k-range-start .k-calendar-cell-inner,
+.k-calendar .k-range-start .k-link,
+.k-calendar .k-range-end .k-calendar-cell-inner,
+.k-calendar .k-range-end .k-link {
+    background-color: #151945;
+}
+
+.k-calendar .k-calendar-td.k-selected:hover .k-calendar-cell-inner,
+.k-calendar .k-calendar-td.k-selected:hover .k-link,
+.k-calendar .k-calendar-td.k-selected.k-hover .k-calendar-cell-inner,
+.k-calendar .k-calendar-td.k-selected.k-hover .k-link {
+    background-color: #151945;
+}
+
+.k-calendar .k-range-start,
+.k-calendar .k-range-end,
+.k-calendar .k-range-mid {
+    background-color: rgba(7, 41, 102, 0.25);
+}
+
+.k-calendar .k-range-split-start::after {
+    background-image: linear-gradient(to left, rgba(7, 41, 102, 0.25), transparent 100%);
+}
+
+.k-calendar .k-range-split-end::after {
+    background-image: linear-gradient(to right, rgba(7, 41, 102, 0.25), transparent 100%);
+}
+
+.k-pager-md .k-pager-info,
+.k-pager-sm .k-pager-info,
+.k-pager-sm .k-pager-sizes,
+.k-pager-sm .k-pager-numbers {
+    display: inline;
+}
+
+.alert-tappable.alert-radio {
+    height: auto;
+    contain: content;
+}
+
+.alert-radio-label.sc-ion-alert-md,
+.alert-radio-label.sc-ion-alert-ios {
+    white-space: normal;
+}
+
+.email-editor-modal-class {
+    &::part(content) {
+        // backdrop-filter: blur(12px);
+        width: 70%;
+        border-radius: 15px;
+        // width: 70%;
+        height: 80%;
+        // margin: auto;
+    }
+}
+
+.workflow-contact-modal-class {
+    &::part(content) {
+        border-radius: 15px;
+    }
+}
+
+.alert-radio-group {
+    // added this for ion-selec alert for job offers and new job offer when clicked on list of communication workflows
+    scrollbar-width: thin;
+    /* Firefox */
+    scrollbar-color: #666666 #ffffff;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: #666666;
+        border-radius: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #ffffff;
+    }
+}
+
+// Enterprise Upsell Modal
+.enterprise-upsell-modal {
+    .modal-wrapper {
+        height: 90%;
+        max-height: 800px;
+        width: 90%;
+        max-width: 600px;
+        border-radius: 24px 24px 0 0;
+        overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .modal-wrapper {
+            height: 100%;
+            width: 100%;
+            max-width: 100%;
+            border-radius: 0;
+        }
+    }
+}
+
+ion-alert.login-error-alert {
+    --background: white !important;
+    --max-width: 550px !important;
+    --min-width: 420px !important;
+
+    .alert-wrapper {
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25) !important;
+        background: white !important;
+    }
+
+    .alert-head {
+        padding: 28px 28px 16px !important;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+        border-radius: 16px 16px 0 0 !important;
+
+        h2.alert-title {
+            font-size: 20px !important;
+            font-weight: 600 !important;
+            color: white !important;
+            margin: 0 !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        }
+    }
+
+    .alert-message {
+        padding: 24px 28px !important;
+        font-size: 14px !important;
+        line-height: 1.7 !important;
+        color: #334155 !important;
+        max-height: 500px !important;
+        overflow-y: auto !important;
+
+        div {
+            p {
+                margin: 0 0 8px 0 !important;
+                line-height: 1.7 !important;
+                color: #475569 !important;
+
+                &:first-child {
+                    font-size: 15px !important;
+                    color: #1e293b !important;
+                }
+            }
+
+            ul {
+                margin: 12px 0 !important;
+                padding-left: 20px !important;
+                list-style-type: disc !important;
+
+                li {
+                    margin: 8px 0 !important;
+                    line-height: 1.6 !important;
+                    color: #475569 !important;
+                }
+            }
+
+            strong {
+                font-weight: 600 !important;
+                color: #1e293b !important;
+            }
+        }
+    }
+
+    .alert-button-group {
+        padding: 16px 28px 24px !important;
+        border-top: 1px solid #e5e7eb !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        gap: 12px !important;
+
+        button.alert-button {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+            color: white !important;
+            border: none !important;
+            padding: 12px 28px !important;
+            border-radius: 8px !important;
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            text-transform: none !important;
+            transition: all 0.2s !important;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25) !important;
+
+            span.alert-button-inner {
+                color: white !important;
+            }
+
+            &:hover {
+                background: linear-gradient(135deg, #5558dd 0%, #7c3aed 100%) !important;
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35) !important;
+                transform: translateY(-1px) !important;
+            }
+
+            &:active {
+                transform: translateY(0) !important;
+            }
+        }
+    }
+}
+
+.delete-or-archive-modal {
+    --backdrop-opacity: 0.5;
+
+    &::part(content) {
+        border-radius: 16px;
+    }
+}
+
+// Integrations Popup Styles for Pricing Page
+ion-alert.integrations-popup-alert {
+    --max-width: 560px;
+    --width: 95%;
+    
+    .alert-wrapper {
+        border-radius: 24px !important;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                    0 0 0 1px rgba(92, 55, 223, 0.1);
+    }
+    
+    .alert-head {
+        padding: 28px 28px 20px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+        border-bottom: 1px solid rgba(92, 55, 223, 0.1);
+        
+        h2.alert-title {
+            font-size: 24px !important;
+            font-weight: 700 !important;
+            color: #1a1a2e !important;
+            margin: 0 !important;
+        }
+    }
+    
+    .alert-message {
+        padding: 24px 28px !important;
+        max-height: 65vh !important;
+        overflow-y: auto !important;
+        color: #333 !important;
+        
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+            background: rgba(92, 55, 223, 0.3);
+            border-radius: 3px;
+        }
+        
+        &::-webkit-scrollbar-track {
+            background: rgba(92, 55, 223, 0.05);
+        }
+    }
+    
+    .alert-button-group {
+        padding: 20px 28px 24px !important;
+        justify-content: center !important;
+        
+        button.alert-button {
+            background: linear-gradient(135deg, #5c37df 0%, #7c5ce7 100%) !important;
+            color: white !important;
+            font-weight: 600 !important;
+            border-radius: 14px !important;
+            padding: 14px 40px !important;
+            text-transform: none !important;
+            font-size: 16px !important;
+            margin: 0 !important;
+            box-shadow: 0 4px 15px rgba(92, 55, 223, 0.3) !important;
+            transition: all 0.2s ease !important;
+            
+            span.alert-button-inner {
+                color: white !important;
+            }
+            
+            &:hover {
+                background: linear-gradient(135deg, #4a2bc7 0%, #6b4ad6 100%) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 6px 20px rgba(92, 55, 223, 0.4) !important;
+            }
+        }
+    }
+}
+
+.agentic-mode-modal {
+    --width: auto;
+    --max-width: 460px;
+    --height: auto;
+    --border-radius: 20px;
+    --backdrop-opacity: 0.4;
+}
+
+.sidebar-connect-item {
+    button {
+        width: 100% !important;
+        border: 1px solid #e2e5ea !important;
+        border-radius: 10px !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        outline: none !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        transition: border-color 0.15s, box-shadow 0.15s !important;
+
+        &:hover {
+            border-color: #0071e3 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+        }
+    }
+
+    .gsi-material-button {
+        height: 44px !important;
+        border-radius: 10px !important;
+        border: 1px solid #e2e5ea !important;
+        box-shadow: none !important;
+        justify-content: center !important;
+        width: 100% !important;
+
+        &:hover {
+            border-color: #0071e3 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+        }
+    }
+
+    #wpo365OpenIdRedirect.wpo365-mssignin-wrapper {
+        padding: 0 !important;
+        background: transparent !important;
+        text-align: center !important;
+    }
+
+    .wpo365-mssignin-spacearound {
+        display: flex !important;
+        width: 100% !important;
+    }
+
+    .wpo365-mssignin-button {
+        border: none !important;
+        width: 100% !important;
+        height: 44px !important;
+        max-height: 44px !important;
+        min-height: 44px !important;
+        justify-content: center !important;
+        background: transparent !important;
+    }
+
+    .wpo365-mssignin-logo {
+        padding-left: 0 !important;
+    }
+
+    .wpo365-mssignin-label {
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        color: #1f1f1f !important;
+        height: auto !important;
+        line-height: normal !important;
+    }
+}
+
+@import './app/communication/workflow-builder/entity-modal/entity-modal.global.scss';
+
+.dashboard-template-modal {
+    --width: 90vw;
+    --max-width: 1200px;
+    --height: 85vh;
+    --border-radius: 20px;
+    --backdrop-opacity: 0.4;
+}
+
+.dashboard-widget-settings-modal {
+    --width: 90vw;
+    --max-width: 520px;
+    --height: auto;
+    --max-height: 85vh;
+    --border-radius: 16px;
+    --backdrop-opacity: 0.4;
+}
+
+.dashboards-view {
+    height: 100%;
+    overflow: hidden;
+
+    app-dashboard-view {
+        display: block;
+        height: 100%;
+    }
+}
+
+ion-alert.copilot-login-alert {
+    --max-width: 420px;
+    --width: 90%;
+
+    .alert-wrapper {
+        border-radius: 20px !important;
+        overflow: hidden;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
+        background: white !important;
+        padding: 0 !important;
+    }
+
+    .alert-head {
+        display: none !important;
+    }
+
+    .alert-message {
+        padding: 32px 28px 20px !important;
+        text-align: center;
+        max-height: none !important;
+        font-family: 'Manrope', -apple-system, sans-serif;
+
+        .copilot-modal {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+            .copilot-modal-icon {
+                width: 72px;
+                height: 72px;
+                border-radius: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                &.loading {
+                    background: linear-gradient(135deg, #f0edff 0%, #e8e4ff 100%);
+                    ion-spinner {
+                        --color: #5c37df;
+                        width: 32px;
+                        height: 32px;
+                    }
+                }
+
+                &.success {
+                    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+                }
+
+                &.error {
+                    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+                }
+            }
+        }
+    }
+
+    .alert-button-group {
+        padding: 8px 28px 24px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        justify-content: center !important;
+
+        button.alert-button {
+            border-radius: 12px !important;
+            margin: 0 !important;
+            min-height: 44px;
+            font-family: 'Manrope', sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            text-transform: none !important;
+            transition: all 0.2s !important;
+
+            &.copilot-btn-primary {
+                background: linear-gradient(135deg, #5c37df 0%, #7c5ce7 100%) !important;
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(92, 55, 223, 0.25) !important;
+
+                span.alert-button-inner {
+                    color: white !important;
+                    justify-content: center !important;
+                }
+
+                &:hover {
+                    box-shadow: 0 6px 16px rgba(92, 55, 223, 0.35) !important;
+                    transform: translateY(-1px) !important;
+                }
+            }
+
+            &.copilot-btn-secondary {
+                background: transparent !important;
+                color: #64748b !important;
+                border: 1px solid #e2e8f0 !important;
+
+                span.alert-button-inner {
+                    color: #64748b !important;
+                    justify-content: center !important;
+                }
+
+                &:hover {
+                    background: #f8fafc !important;
+                    color: #1e293b !important;
+                }
+            }
+        }
+    }
+}

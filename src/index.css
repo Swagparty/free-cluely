@@ -2,166 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Liquid Glass Effect Base */
-.liquid-glass {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(16px) saturate(180%) brightness(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(120%);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 1rem;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-  position: relative;
+:root {
+  --mona-dark: 248 249 252;
+  --mona-card: 255 255 255;
+  --mona-surface: 237 240 247;
+  --mona-hover: 226 232 240;
+  --copilot-text: 30 41 59;
+  --copilot-text-secondary: 71 85 105;
+  --copilot-text-muted: 100 116 139;
+  --copilot-border: rgba(100, 116, 139, 0.2);
+  --card-border: rgba(100, 116, 139, 0.15);
+  --surface-border: rgba(100, 116, 139, 0.12);
+  --scrollbar-thumb: rgba(100, 116, 139, 0.35);
+  --scrollbar-thumb-hover: rgba(100, 116, 139, 0.55);
+  --font-scale: 1;
+}
+
+.dark {
+  --mona-dark: 26 26 46;
+  --mona-card: 10 12 36;
+  --mona-surface: 22 24 45;
+  --mona-hover: 30 32 69;
+  --copilot-text: 241 245 249;
+  --copilot-text-secondary: 203 213 225;
+  --copilot-text-muted: 148 163 184;
+  --copilot-border: rgba(148, 163, 184, 0.15);
+  --card-border: rgba(148, 163, 184, 0.15);
+  --surface-border: rgba(148, 163, 184, 0.1);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.3);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Roboto", sans-serif;
+  background: rgb(var(--mona-dark));
+  color: rgb(var(--copilot-text));
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Enhanced liquid glass with shimmer effect */
-.liquid-glass::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  animation: shimmer 3s ease-in-out infinite;
-  pointer-events: none;
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Manrope", sans-serif;
 }
 
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  50% {
-    left: 100%;
-  }
-  100% {
-    left: 100%;
-  }
+::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* Fallback for browsers without backdrop-filter support */
-@supports not (backdrop-filter: blur()) {
-  .liquid-glass {
-    background: rgba(255, 255, 255, 0.5);
-    border: 2px solid rgba(255, 255, 255, 0.6);
-  }
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-/* Add a subtle outline to ensure visibility */
-.liquid-glass:before {
-  outline: 1px solid rgba(255, 255, 255, 0.1);
-  outline-offset: -1px;
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 .draggable-area {
   -webkit-app-region: drag;
-  height: 32px;
-  width: 100%;
-  background: transparent;
-  cursor: move;
-  position: relative;
-  z-index: 1000;
-  border-radius: 1rem 1rem 0 0;
 }
 
-/* Make sure buttons and interactive elements are not draggable */
 button, input, select, textarea, .interactive {
   -webkit-app-region: no-drag;
 }
 
-/* Override for the liquid glass bar - make it draggable */
-.liquid-glass.draggable-area {
-  -webkit-app-region: drag;
-  cursor: move;
+.mona-gradient {
+  background: linear-gradient(135deg, #5c37df 0%, #7c5ce7 100%);
 }
 
-/* But keep buttons inside clickable */
-.liquid-glass.draggable-area button {
-  -webkit-app-region: no-drag;
-  cursor: pointer;
+.mona-card {
+  background: rgb(var(--mona-card));
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
 }
 
-/* Add visual feedback for draggable area */
-.draggable-area:hover {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-}
-
-/* Dark theme liquid glass variant */
-.liquid-glass-dark {
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(16px) saturate(180%) brightness(80%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(80%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-}
-
-/* Ensure content is not blurred */
-.glass-content {
-  position: relative;
-  z-index: 1;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-/* Chat container specific styling */
-.liquid-glass.chat-container {
-  min-height: auto;
-  height: auto;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px) saturate(200%) brightness(110%);
-  -webkit-backdrop-filter: blur(20px) saturate(200%) brightness(110%);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-}
-
-/* Thin bar variant of liquid glass - for command bar */
-.liquid-glass-bar {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(16px) saturate(180%) brightness(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(120%);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 1rem;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-  position: relative;
-  overflow: hidden;
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-}
-
-/* Shimmer effect for bar variant */
-.liquid-glass-bar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  animation: shimmer 3s ease-in-out infinite;
-  pointer-events: none;
+.mona-surface {
+  background: rgb(var(--mona-surface));
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
 }

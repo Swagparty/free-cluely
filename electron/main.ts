@@ -1,62 +1,90 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from "electron"
+import { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, session, desktopCapturer } from "electron"
+import path from "node:path"
+
+let initMain: any
+let enableLoopbackAudio: any
+let disableLoopbackAudio: any
+try {
+  const loopback = require("electron-audio-loopback")
+  initMain = loopback.initMain
+  enableLoopbackAudio = loopback.enableLoopbackAudio
+  disableLoopbackAudio = loopback.disableLoopbackAudio
+  console.log("[AudioLoopback] Module loaded successfully")
+} catch (e: any) {
+  console.error("[AudioLoopback] Failed to load:", e.message)
+}
+
+import { autoUpdater } from "electron-updater"
 import { initializeIpcHandlers } from "./ipcHandlers"
 import { WindowHelper } from "./WindowHelper"
-import { ScreenshotHelper } from "./ScreenshotHelper"
-import { ShortcutsHelper } from "./shortcuts"
-import { ProcessingHelper } from "./ProcessingHelper"
+import { AuthManager } from "./auth"
+import { CopilotWebSocket } from "./websocket"
+import { SessionManager } from "./session"
+import { AudioCaptureManager } from "./audioCapture"
+import { getTrayIcon } from "./iconHelper"
+
+const PROTOCOL = "monalive"
+const isDev = process.env.NODE_ENV === "development"
+const isTest = process.env.PLAYWRIGHT_TEST === "true"
+const PLATFORM_LOGIN_URL = process.env.MONA_PLATFORM_LOGIN_URL || "https://app.mona-ai.io/profile?copilot=true"
+const UPDATE_FEED_URL = "https://updates.mona-ai.io/live"
+
+function setupAutoUpdater(): void {
+  if (isDev || isTest) return
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.setFeedURL({ provider: "generic", url: UPDATE_FEED_URL })
+
+  autoUpdater.on("error", (err) => {
+    console.error("[AutoUpdater] Error:", err.message)
+  })
+
+  autoUpdater.on("update-available", (info) => {
+    console.log("[AutoUpdater] Update available:", info.version)
+  })
+
+  autoUpdater.on("update-downloaded", (info) => {
+    console.log("[AutoUpdater] Update downloaded:", info.version)
+  })
+
+  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+    console.error("[AutoUpdater] checkForUpdates failed:", err.message)
+  })
+}
 
 export class AppState {
   private static instance: AppState | null = null
 
-  private windowHelper: WindowHelper
-  private screenshotHelper: ScreenshotHelper
-  public shortcutsHelper: ShortcutsHelper
-  public processingHelper: ProcessingHelper
+  public windowHelper: WindowHelper
+  public auth: AuthManager
+  public ws: CopilotWebSocket
+  public session: SessionManager
+  public audioCapture: AudioCaptureManager
   private tray: Tray | null = null
 
-  // View management
-  private view: "queue" | "solutions" = "queue"
-
-  private problemInfo: {
-    problem_statement: string
-    input_format: Record<string, any>
-    output_format: Record<string, any>
-    constraints: Array<Record<string, any>>
-    test_cases: Array<Record<string, any>>
-  } | null = null // Allow null
-
-  private hasDebugged: boolean = false
-
-  // Processing events
-  public readonly PROCESSING_EVENTS = {
-    //global states
-    UNAUTHORIZED: "procesing-unauthorized",
-    NO_SCREENSHOTS: "processing-no-screenshots",
-
-    //states for generating the initial solution
-    INITIAL_START: "initial-start",
-    PROBLEM_EXTRACTED: "problem-extracted",
-    SOLUTION_SUCCESS: "solution-success",
-    INITIAL_SOLUTION_ERROR: "solution-error",
-
-    //states for processing the debugging
-    DEBUG_START: "debug-start",
-    DEBUG_SUCCESS: "debug-success",
-    DEBUG_ERROR: "debug-error"
-  } as const
+  private settings = {
+    overlayPosition: "right" as "left" | "right",
+    transparency: 100,
+    language: "de" as "de" | "en",
+    soundEnabled: false,
+    darkMode: true,
+    fontSize: 14
+  }
 
   constructor() {
-    // Initialize WindowHelper with this
-    this.windowHelper = new WindowHelper(this)
+    this.windowHelper = new WindowHelper()
+    this.auth = new AuthManager()
+    this.ws = new CopilotWebSocket()
+    this.session = new SessionManager(this.auth, this.ws)
+    this.audioCapture = new AudioCaptureManager()
 
-    // Initialize ScreenshotHelper
-    this.screenshotHelper = new ScreenshotHelper(this.view)
-
-    // Initialize ProcessingHelper
-    this.processingHelper = new ProcessingHelper(this)
-
-    // Initialize ShortcutsHelper
-    this.shortcutsHelper = new ShortcutsHelper(this)
+    this.auth.on("auth:expired", () => {
+      const win = this.windowHelper.getMainWindow()
+      if (win && !win.isDestroyed()) {
+        win.webContents.send("auth:expired")
+      }
+    })
   }
 
   public static getInstance(): AppState {
@@ -66,239 +94,211 @@ export class AppState {
     return AppState.instance
   }
 
-  // Getters and Setters
   public getMainWindow(): BrowserWindow | null {
     return this.windowHelper.getMainWindow()
   }
 
-  public getView(): "queue" | "solutions" {
-    return this.view
+  public getSettings() {
+    return { ...this.settings }
   }
 
-  public setView(view: "queue" | "solutions"): void {
-    this.view = view
-    this.screenshotHelper.setView(view)
+  public updateSettings(partial: Partial<typeof this.settings>): void {
+    Object.assign(this.settings, partial)
   }
 
-  public isVisible(): boolean {
-    return this.windowHelper.isVisible()
-  }
-
-  public getScreenshotHelper(): ScreenshotHelper {
-    return this.screenshotHelper
-  }
-
-  public getProblemInfo(): any {
-    return this.problemInfo
-  }
-
-  public setProblemInfo(problemInfo: any): void {
-    this.problemInfo = problemInfo
-  }
-
-  public getScreenshotQueue(): string[] {
-    return this.screenshotHelper.getScreenshotQueue()
-  }
-
-  public getExtraScreenshotQueue(): string[] {
-    return this.screenshotHelper.getExtraScreenshotQueue()
-  }
-
-  // Window management methods
   public createWindow(): void {
     this.windowHelper.createWindow()
+    const win = this.windowHelper.getMainWindow()
+    this.session.setMainWindow(win)
+    this.audioCapture.setMainWindow(win)
   }
 
-  public hideMainWindow(): void {
-    this.windowHelper.hideMainWindow()
+  public openPlatformLogin(): void {
+    shell.openExternal(PLATFORM_LOGIN_URL)
   }
 
-  public showMainWindow(): void {
-    this.windowHelper.showMainWindow()
-  }
+  public async handleDeepLink(url: string): Promise<void> {
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol !== `${PROTOCOL}:`) return
 
-  public toggleMainWindow(): void {
-    console.log(
-      "Screenshots: ",
-      this.screenshotHelper.getScreenshotQueue().length,
-      "Extra screenshots: ",
-      this.screenshotHelper.getExtraScreenshotQueue().length
-    )
-    this.windowHelper.toggleMainWindow()
-  }
+      const key = parsed.searchParams.get("key")
+      if (!key) return
 
-  public setWindowDimensions(width: number, height: number): void {
-    this.windowHelper.setWindowDimensions(width, height)
-  }
+      const result = await this.auth.loginWithKey(key)
+      const mainWindow = this.windowHelper.getMainWindow()
 
-  public clearQueues(): void {
-    this.screenshotHelper.clearQueues()
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("auth:deep-link", {
+          success: result.success,
+          error: result.error
+        })
 
-    // Clear problem info
-    this.problemInfo = null
-
-    // Reset view to initial state
-    this.setView("queue")
-  }
-
-  // Screenshot management methods
-  public async takeScreenshot(): Promise<string> {
-    if (!this.getMainWindow()) throw new Error("No main window available")
-
-    const screenshotPath = await this.screenshotHelper.takeScreenshot(
-      () => this.hideMainWindow(),
-      () => this.showMainWindow()
-    )
-
-    return screenshotPath
-  }
-
-  public async getImagePreview(filepath: string): Promise<string> {
-    return this.screenshotHelper.getImagePreview(filepath)
-  }
-
-  public async deleteScreenshot(
-    path: string
-  ): Promise<{ success: boolean; error?: string }> {
-    return this.screenshotHelper.deleteScreenshot(path)
-  }
-
-  // New methods to move the window
-  public moveWindowLeft(): void {
-    this.windowHelper.moveWindowLeft()
-  }
-
-  public moveWindowRight(): void {
-    this.windowHelper.moveWindowRight()
-  }
-  public moveWindowDown(): void {
-    this.windowHelper.moveWindowDown()
-  }
-  public moveWindowUp(): void {
-    this.windowHelper.moveWindowUp()
-  }
-
-  public centerAndShowWindow(): void {
-    this.windowHelper.centerAndShowWindow()
+        this.windowHelper.showMainWindow()
+      }
+    } catch (err: any) {
+      console.error("[DeepLink] Failed to handle:", err.message)
+    }
   }
 
   public createTray(): void {
-    // Create a simple tray icon
-    const image = nativeImage.createEmpty()
-    
-    // Try to use a system template image for better integration
-    let trayImage = image
-    try {
-      // Create a minimal icon - just use an empty image and set the title
-      trayImage = nativeImage.createFromBuffer(Buffer.alloc(0))
-    } catch (error) {
-      console.log("Using empty tray image")
-      trayImage = nativeImage.createEmpty()
-    }
-    
+    const trayImage = getTrayIcon()
     this.tray = new Tray(trayImage)
-    
+
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: 'Show Interview Coder',
-        click: () => {
-          this.centerAndShowWindow()
-        }
+        label: "MONA Live anzeigen",
+        click: () => this.windowHelper.showMainWindow()
       },
       {
-        label: 'Toggle Window',
-        click: () => {
-          this.toggleMainWindow()
-        }
+        label: "Fenster ein-/ausblenden",
+        click: () => this.windowHelper.toggleMainWindow()
       },
+      { type: "separator" },
       {
-        type: 'separator'
-      },
-      {
-        label: 'Take Screenshot (Cmd+H)',
-        click: async () => {
-          try {
-            const screenshotPath = await this.takeScreenshot()
-            const preview = await this.getImagePreview(screenshotPath)
-            const mainWindow = this.getMainWindow()
-            if (mainWindow) {
-              mainWindow.webContents.send("screenshot-taken", {
-                path: screenshotPath,
-                preview
-              })
-            }
-          } catch (error) {
-            console.error("Error taking screenshot from tray:", error)
-          }
-        }
-      },
-      {
-        type: 'separator'
-      },
-      {
-        label: 'Quit',
-        accelerator: 'Command+Q',
-        click: () => {
-          app.quit()
-        }
+        label: "Beenden",
+        click: () => app.quit()
       }
     ])
-    
-    this.tray.setToolTip('Interview Coder - Press Cmd+Shift+Space to show')
+
+    this.tray.setToolTip("MONA Live")
     this.tray.setContextMenu(contextMenu)
-    
-    // Set a title for macOS (will appear in menu bar)
-    if (process.platform === 'darwin') {
-      this.tray.setTitle('IC')
+
+    if (process.platform === "darwin") {
+      this.tray.setTitle("MONA")
     }
-    
-    // Double-click to show window
-    this.tray.on('double-click', () => {
-      this.centerAndShowWindow()
+
+    this.tray.on("double-click", () => {
+      this.windowHelper.showMainWindow()
     })
-  }
-
-  public setHasDebugged(value: boolean): void {
-    this.hasDebugged = value
-  }
-
-  public getHasDebugged(): boolean {
-    return this.hasDebugged
   }
 }
 
-// Application initialization
 async function initializeApp() {
+  if (initMain) {
+    try { initMain() } catch (e: any) { console.error("[AudioLoopback] initMain failed:", e.message) }
+  }
+
+  app.name = "MONA Live"
+
+  if (!isTest) {
+    const gotLock = app.requestSingleInstanceLock()
+    if (!gotLock) {
+      app.quit()
+      return
+    }
+  }
+
   const appState = AppState.getInstance()
 
-  // Initialize IPC handlers before window creation
+  if (isDev && process.platform === "win32") {
+    app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
+      path.resolve(process.argv[1])
+    ])
+  } else {
+    app.setAsDefaultProtocolClient(PROTOCOL)
+  }
+
   initializeIpcHandlers(appState)
 
+  ipcMain.handle("audio:get-desktop-sources", async () => {
+    try {
+      const sources = await desktopCapturer.getSources({ types: ["screen", "window"] })
+      return sources.map(s => ({ id: s.id, name: s.name }))
+    } catch (e: any) {
+      console.error("[DesktopCapturer] Error:", e.message)
+      return []
+    }
+  })
+
+  ipcMain.handle("audio:enable-loopback", async () => {
+    if (enableLoopbackAudio) {
+      try {
+        enableLoopbackAudio()
+        console.log("[AudioLoopback] Enabled")
+        return { success: true }
+      } catch (e: any) {
+        console.error("[AudioLoopback] enable failed:", e.message)
+        return { success: false, error: e.message }
+      }
+    }
+    return { success: false, error: "Loopback not available" }
+  })
+
+  ipcMain.handle("audio:disable-loopback", async () => {
+    if (disableLoopbackAudio) {
+      try {
+        disableLoopbackAudio()
+        console.log("[AudioLoopback] Disabled")
+      } catch (e: any) {
+        console.error("[AudioLoopback] disable failed:", e.message)
+      }
+    }
+  })
+
+  app.on("second-instance", (_event, argv) => {
+    const deepLinkUrl = argv.find(arg => arg.startsWith(`${PROTOCOL}://`))
+    if (deepLinkUrl) {
+      appState.handleDeepLink(deepLinkUrl)
+    }
+    appState.windowHelper.showMainWindow()
+  })
+
+  if (process.platform === "win32") {
+    const deepLinkArg = process.argv.find(arg => arg.startsWith(`${PROTOCOL}://`))
+    if (deepLinkArg) {
+      app.whenReady().then(() => appState.handleDeepLink(deepLinkArg))
+    }
+  }
+
+  app.on("open-url", (_event, url) => {
+    appState.handleDeepLink(url)
+  })
+
   app.whenReady().then(() => {
-    console.log("App is ready")
+    session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+      const allowed = ["media", "microphone", "audio-capture", "display-capture"]
+      callback(allowed.includes(permission))
+    })
+
+    session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+      const allowed = ["media", "microphone", "audio-capture", "display-capture"]
+      return allowed.includes(permission)
+    })
+
+    session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
+      const sources = await desktopCapturer.getSources({ types: ["screen"] })
+      if (sources.length > 0) {
+        callback({ video: sources[0], audio: "loopback" })
+      } else {
+        callback({})
+      }
+    })
+
     appState.createWindow()
     appState.createTray()
-    // Register global shortcuts using ShortcutsHelper
-    appState.shortcutsHelper.registerGlobalShortcuts()
+    setupAutoUpdater()
   })
 
   app.on("activate", () => {
-    console.log("App activated")
     if (appState.getMainWindow() === null) {
       appState.createWindow()
     }
   })
 
-  // Quit when all windows are closed, except on macOS
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
       app.quit()
     }
   })
 
-  app.dock?.hide() // Hide dock icon (optional)
+  app.on("before-quit", () => {
+    appState.audioCapture.destroy()
+    appState.session.destroy()
+    appState.auth.destroy()
+  })
+
   app.commandLine.appendSwitch("disable-background-timer-throttling")
 }
 
-// Start the application
 initializeApp().catch(console.error)
