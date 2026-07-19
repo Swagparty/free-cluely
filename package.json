@@ -116,6 +116,7 @@
     "cross-env": "^7.0.3",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
+    "electron-builder-squirrel-windows": "^25.1.8",
     "electron-playwright-helpers": "^2.1.0",
     "playwright": "^1.60.0",
     "postcss": "^8.4.49",
