@@ -27,7 +27,7 @@ const PROTOCOL = "monalive"
 const isDev = process.env.NODE_ENV === "development"
 const isTest = process.env.PLAYWRIGHT_TEST === "true"
 const PLATFORM_LOGIN_URL = process.env.MONA_PLATFORM_LOGIN_URL || "https://app.mona-ai.io/profile?copilot=true"
-const UPDATE_FEED_URL = "https://updates.mona-ai.io/live"
+const UPDATE_FEED_URL = "https://api.mona-ai.cloud/mona-live"
 
 function setupAutoUpdater(): void {
   if (isDev || isTest) return

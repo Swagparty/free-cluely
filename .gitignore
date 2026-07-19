@@ -81,6 +81,10 @@ web_modules/
 .env.production.local
 .env.local
 
+# GCP service account keys (never commit)
+mona-live-sa.json
+*-sa.json
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

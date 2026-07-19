@@ -2,18 +2,19 @@
 #
 # Triggers on merge/push to master, version tags (v*), and manual dispatch.
 #
-# One-time GCS setup:
-#   1. Create bucket (e.g. mona-live-updates) in europe-west3
-#   2. Grant public read on objects under live/
-#   3. Point updates.mona-ai.io → bucket (CDN / LB / Cloudflare)
-#   4. Create a service account with roles/storage.objectAdmin on that bucket
+# Public URL (via api.mona-ai.cloud load balancer backend bucket):
+#   https://api.mona-ai.cloud/mona-live/
+#
+# One-time GCS + LB setup (from api.mona-ai.cloud repo):
+#   bash development/setup-mona-live-backend-bucket.sh
+#   then import gcp.yaml so /mona-live/* hits backendBuckets/mona-live-updates
 #
 # Required GitHub secrets:
-#   GCP_SA_KEY  — service account JSON key
-#   GCP_BUCKET  — e.g. mona-live-updates
+#   GCP_SA_KEY  — service account JSON key with storage.objectAdmin
+#   GCP_BUCKET  — mona-live-updates
 #
-# Optional GitHub secret / variable:
-#   GCP_PREFIX  — object prefix (default: live)
+# Optional GitHub variable:
+#   GCP_PREFIX  — object prefix (default: mona-live)
 
 name: Build and Release
 
@@ -168,7 +169,7 @@ jobs:
           GCP_PREFIX: ${{ vars.GCP_PREFIX }}
         run: |
           set -euo pipefail
-          PREFIX="${GCP_PREFIX:-live}"
+          PREFIX="${GCP_PREFIX:-mona-live}"
           DEST="gs://${GCP_BUCKET}/${PREFIX}/"
           echo "Uploading to ${DEST}"
           gsutil -m cp release/windows/* "$DEST"

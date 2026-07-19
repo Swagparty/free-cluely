@@ -96,7 +96,7 @@
     },
     "publish": {
       "provider": "generic",
-      "url": "https://updates.mona-ai.io/live"
+      "url": "https://api.mona-ai.cloud/mona-live"
     }
   },
   "keywords": [],
