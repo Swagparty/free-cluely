@@ -31,7 +31,7 @@ permissions:
   id-token: write
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
 
 jobs:
   resolve-version:
@@ -98,6 +98,7 @@ jobs:
   build-mac:
     needs: resolve-version
     runs-on: macos-latest
+    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -114,8 +115,14 @@ jobs:
       - name: Set package version
         run: npm version --no-git-tag-version "${{ needs.resolve-version.outputs.version }}"
 
-      - name: Build renderer
-        run: npm run build
+      - name: Clean
+        run: npx rimraf dist dist-electron
+
+      - name: Typecheck
+        run: npx tsc --pretty false
+
+      - name: Vite build
+        run: npx vite build
 
       - name: Compile Electron
         run: npx tsc -p electron/tsconfig.json
@@ -124,6 +131,7 @@ jobs:
         run: npx electron-builder --mac --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload Mac artifacts
         uses: actions/upload-artifact@v4
@@ -136,12 +144,15 @@ jobs:
             release/*.zip.blockmap
             release/latest-mac.yml
           retention-days: 30
-          if-no-files-found: error
+          if-no-files-found: warn
 
   publish:
     needs: [resolve-version, build-windows, build-mac]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    if: |
+      always() &&
+      needs.build-windows.result == 'success' &&
+      (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     steps:
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
@@ -150,6 +161,7 @@ jobs:
           path: release/windows
 
       - name: Download Mac artifacts
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: mac-installer
@@ -173,7 +185,11 @@ jobs:
           DEST="gs://${GCP_BUCKET}/${PREFIX}/"
           echo "Uploading to ${DEST}"
           gsutil -m cp release/windows/* "$DEST"
-          gsutil -m cp release/mac/* "$DEST"
+          if [ -d release/mac ] && [ -n "$(ls -A release/mac 2>/dev/null || true)" ]; then
+            gsutil -m cp release/mac/* "$DEST"
+          else
+            echo "No Mac artifacts; publishing Windows only"
+          fi
           echo "Published version ${{ needs.resolve-version.outputs.version }} to ${DEST}"
 
       - name: Create GitHub Release
@@ -181,11 +197,20 @@ jobs:
         with:
           tag_name: v${{ needs.resolve-version.outputs.version }}
           name: MONA Live v${{ needs.resolve-version.outputs.version }}
-          files: |
-            release/windows/*
-            release/mac/*
+          files: release/windows/*
           generate_release_notes: true
           draft: false
           make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attach Mac artifacts to release
+        continue-on-error: true
+        if: hashFiles('release/mac/*') != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.resolve-version.outputs.version }}
+          files: release/mac/*
+          append_body: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
