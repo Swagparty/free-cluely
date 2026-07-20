@@ -128,10 +128,11 @@ jobs:
         run: npx tsc -p electron/tsconfig.json
 
       - name: Build Mac installer
-        run: npx electron-builder --mac --publish never
+        run: npx electron-builder --mac --arm64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          DEBUG: electron-builder
 
       - name: Upload Mac artifacts
         uses: actions/upload-artifact@v4

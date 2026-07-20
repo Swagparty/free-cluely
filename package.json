@@ -28,8 +28,7 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "package.json",
-      "node_modules/**/*"
+      "package.json"
     ],
     "directories": {
       "output": "release",
@@ -46,14 +45,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64"]
         }
       ],
       "icon": "assets/icons/png/icon.png",
       "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null,
       "notarize": false,
       "artifactName": "MonaLive-${version}-${arch}.${ext}"
     },
