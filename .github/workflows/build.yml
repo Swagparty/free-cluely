@@ -85,6 +85,28 @@ jobs:
       - name: Compile Electron
         run: npx tsc -p electron/tsconfig.json
 
+      - name: Check code-signing secrets
+        shell: bash
+        env:
+          SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
+          SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
+          SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
+          SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
+        run: |
+          missing=0
+          for name in SSL_COM_ESIGNER_USERNAME SSL_COM_ESIGNER_PASSWORD SSL_COM_ESIGNER_CREDENTIAL_ID SSL_COM_ESIGNER_TOTP_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Add the four SSL_COM_ESIGNER_* secrets under Settings → Secrets and variables → Actions"
+            echo "Activate eSigner on SSL.com first (PIN + TOTP QR), then store username, password, credential ID, and TOTP secret."
+            exit 1
+          fi
+          echo "Code-signing secrets present"
+
       - name: Build Windows installer
         run: npx electron-builder --win --publish never
         env:
@@ -93,6 +115,7 @@ jobs:
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
           SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
           SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
+          SSL_COM_ESIGNER_DEBUG: "true"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
