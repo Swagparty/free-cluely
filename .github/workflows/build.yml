@@ -8,6 +8,10 @@
 # Required GitHub secrets:
 #   GCP_SA_KEY  — service account JSON key with storage.objectAdmin
 #   GCP_BUCKET  — mona-live-updates
+#   SSL_COM_ESIGNER_USERNAME       — SSL.com account username
+#   SSL_COM_ESIGNER_PASSWORD       — SSL.com account password
+#   SSL_COM_ESIGNER_CREDENTIAL_ID  — eSigner credential ID
+#   SSL_COM_ESIGNER_TOTP_SECRET    — eSigner TOTP secret (from QR enrollment)
 #
 # Optional GitHub variable:
 #   GCP_PREFIX  — object prefix (default: mona-live)
@@ -62,6 +66,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Install dependencies
         run: npm ci
 
@@ -79,6 +89,10 @@ jobs:
         run: npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
+          SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
+          SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
+          SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

@@ -45,11 +45,15 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         }
       ],
       "icon": "assets/icons/png/icon.png",
@@ -69,7 +73,9 @@
         }
       ],
       "icon": "assets/icons/png/icon.png",
-      "artifactName": "MonaLive-Setup-${version}.${ext}"
+      "artifactName": "MonaLive-Setup-${version}.${ext}",
+      "sign": "electron-builder-ssl-com-esigner",
+      "signingHashAlgorithms": ["sha256"]
     },
     "linux": {
       "target": [
@@ -119,6 +125,7 @@
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
     "electron-builder-squirrel-windows": "^25.1.8",
+    "electron-builder-ssl-com-esigner": "^1.0.0",
     "electron-playwright-helpers": "^2.1.0",
     "playwright": "^1.60.0",
     "postcss": "^8.4.49",
