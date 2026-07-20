@@ -120,6 +120,7 @@ jobs:
           DEST="gs://${GCP_BUCKET}/${PREFIX}/"
           echo "Uploading to ${DEST}"
           gsutil -m cp release/windows/* "$DEST"
+          gsutil setmeta -h "Cache-Control:no-cache, max-age=0" "${DEST}latest.yml"
           echo "Published version ${{ needs.resolve-version.outputs.version }} to ${DEST}"
 
       - name: Create GitHub Release
