@@ -145,6 +145,10 @@
     "zustand": "^5.0.3"
   },
   "optionalDependencies": {
+    "@esbuild/darwin-arm64": "^0.21.5",
+    "@esbuild/darwin-x64": "^0.21.5",
+    "@rollup/rollup-darwin-arm64": "^4.50.1",
+    "@rollup/rollup-darwin-x64": "^4.50.1",
     "electron-audio-loopback": "^1.0.6"
   }
 }
