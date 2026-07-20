@@ -1,13 +1,9 @@
-# MONA Live — build & publish to Google Cloud Storage
+# MONA Live — build & publish to Google Cloud Storage (Windows only)
 #
 # Triggers on merge/push to master, version tags (v*), and manual dispatch.
 #
 # Public URL (via api.mona-ai.cloud load balancer backend bucket):
 #   https://api.mona-ai.cloud/mona-live/
-#
-# One-time GCS + LB setup (from api.mona-ai.cloud repo):
-#   bash development/setup-mona-live-backend-bucket.sh
-#   then import gcp.yaml so /mona-live/* hits backendBuckets/mona-live-updates
 #
 # Required GitHub secrets:
 #   GCP_SA_KEY  — service account JSON key with storage.objectAdmin
@@ -95,78 +91,16 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  build-mac:
-    needs: resolve-version
-    runs-on: macos-latest
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Set package version
-        run: npm version --no-git-tag-version "${{ needs.resolve-version.outputs.version }}"
-
-      - name: Clean
-        run: npx rimraf dist dist-electron
-
-      - name: Typecheck
-        run: npx tsc --pretty false
-
-      - name: Vite build
-        run: npx vite build
-
-      - name: Compile Electron
-        run: npx tsc -p electron/tsconfig.json
-
-      - name: Build Mac installer
-        run: npx electron-builder --mac --arm64 --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          DEBUG: electron-builder
-
-      - name: Upload Mac artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mac-installer
-          path: |
-            release/*.dmg
-            release/*.dmg.blockmap
-            release/*.zip
-            release/*.zip.blockmap
-            release/latest-mac.yml
-          retention-days: 30
-          if-no-files-found: warn
-
   publish:
-    needs: [resolve-version, build-windows, build-mac]
+    needs: [resolve-version, build-windows]
     runs-on: ubuntu-latest
-    if: |
-      always() &&
-      needs.build-windows.result == 'success' &&
-      (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     steps:
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
           name: windows-installer
           path: release/windows
-
-      - name: Download Mac artifacts
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: mac-installer
-          path: release/mac
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -186,11 +120,6 @@ jobs:
           DEST="gs://${GCP_BUCKET}/${PREFIX}/"
           echo "Uploading to ${DEST}"
           gsutil -m cp release/windows/* "$DEST"
-          if [ -d release/mac ] && [ -n "$(ls -A release/mac 2>/dev/null || true)" ]; then
-            gsutil -m cp release/mac/* "$DEST"
-          else
-            echo "No Mac artifacts; publishing Windows only"
-          fi
           echo "Published version ${{ needs.resolve-version.outputs.version }} to ${DEST}"
 
       - name: Create GitHub Release
@@ -202,16 +131,5 @@ jobs:
           generate_release_notes: true
           draft: false
           make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Attach Mac artifacts to release
-        continue-on-error: true
-        if: hashFiles('release/mac/*') != ''
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.resolve-version.outputs.version }}
-          files: release/mac/*
-          append_body: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
