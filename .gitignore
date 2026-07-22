@@ -145,3 +145,4 @@ dist
 release/
 playwright-report/
 test-results/
+.codesigntool/
