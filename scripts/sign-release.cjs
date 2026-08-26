@@ -166,6 +166,8 @@ function main() {
     console.log("=== sign-release.cjs starting ===")
     console.log(`Node version: ${process.version}`)
     console.log(`Platform: ${process.platform}`)
+    const skipSign = String(process.env.SKIP_SIGN || "").toLowerCase() === "true"
+    console.log(`SKIP_SIGN=${skipSign}`)
     const releaseDir = path.resolve(process.cwd(), "release")
     const toolDir = process.env.CODESIGNTOOL_DIR || path.resolve(process.cwd(), ".codesigntool")
     console.log(`cwd=${process.cwd()}`)
@@ -174,21 +176,24 @@ function main() {
     console.log(`toolDir exists=${fs.existsSync(toolDir)}`)
     console.log(`releaseDir=${releaseDir} exists=${fs.existsSync(releaseDir)}`)
 
-    if (fs.existsSync(toolDir)) {
-      console.log(`toolDir contents: ${fs.readdirSync(toolDir).join(", ")}`)
-    }
-    const jar = findJar(toolDir)
-    if (!jar) throw new Error(`CodeSignTool jar not found in ${toolDir}`)
-    console.log(`Using jar ${jar}`)
+    let jar = null
+    if (!skipSign) {
+      if (fs.existsSync(toolDir)) {
+        console.log(`toolDir contents: ${fs.readdirSync(toolDir).join(", ")}`)
+      }
+      jar = findJar(toolDir)
+      if (!jar) throw new Error(`CodeSignTool jar not found in ${toolDir}`)
+      console.log(`Using jar ${jar}`)
 
-    const envNames = ["SSL_COM_ESIGNER_USERNAME", "SSL_COM_ESIGNER_PASSWORD", "SSL_COM_ESIGNER_CREDENTIAL_ID", "SSL_COM_ESIGNER_TOTP_SECRET"]
-    for (const name of envNames) {
-      const val = process.env[name]
-      console.log(`${name}: ${val ? `set (len=${val.length})` : "NOT SET"}`)
-    }
+      const envNames = ["SSL_COM_ESIGNER_USERNAME", "SSL_COM_ESIGNER_PASSWORD", "SSL_COM_ESIGNER_CREDENTIAL_ID", "SSL_COM_ESIGNER_TOTP_SECRET"]
+      for (const name of envNames) {
+        const val = process.env[name]
+        console.log(`${name}: ${val ? `set (len=${val.length})` : "NOT SET"}`)
+      }
 
-    const totp = validateTotpSecret(requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET"))
-    console.log(`TOTP secret normalized length=${totp.length}`)
+      const totp = validateTotpSecret(requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET"))
+      console.log(`TOTP secret normalized length=${totp.length}`)
+    }
 
     if (!fs.existsSync(releaseDir)) {
       throw new Error(`release dir missing: ${releaseDir}`)
@@ -198,7 +203,11 @@ function main() {
     if (!exes.length) throw new Error(`No setup .exe found in ${releaseDir}`)
 
     for (const exe of exes) {
-      signFile(jar, exe)
+      if (!skipSign) {
+        signFile(jar, exe)
+      } else {
+        console.log(`Skipping signing for ${path.basename(exe)} (metadata refresh mode)`)
+      }
       updateLatestYml(releaseDir, exe)
       const blockmap = `${exe}.blockmap`
       if (fs.existsSync(blockmap)) {

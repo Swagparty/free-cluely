@@ -102,15 +102,6 @@ jobs:
               missing=1
             fi
           done
-          totp_normalized="$(printf "%s" "${SSL_COM_ESIGNER_TOTP_SECRET}" | tr -d '[:space:]')"
-          if ! printf "%s" "$totp_normalized" | grep -Eq '^[A-Za-z2-7]+=*$|^[A-Za-z0-9+/_-]+=*$'; then
-            echo "::error::SSL_COM_ESIGNER_TOTP_SECRET format is invalid. Store the exact eSigner secret value, not a 6-digit OTP code."
-            missing=1
-          fi
-          if [ "${#totp_normalized}" -lt 16 ]; then
-            echo "::error::SSL_COM_ESIGNER_TOTP_SECRET is too short (${#totp_normalized})."
-            missing=1
-          fi
           if [ "$missing" -ne 0 ]; then
             echo "Add the four SSL_COM_ESIGNER_* secrets under Settings → Secrets and variables → Actions"
             echo "Activate eSigner on SSL.com first (PIN + TOTP QR), then store username, password, credential ID, and TOTP secret."
@@ -118,80 +109,58 @@ jobs:
           fi
           echo "Code-signing secrets present"
 
-      - name: Download CodeSignTool
-        shell: bash
-        run: |
-          set -euo pipefail
-          URL="https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.2/CodeSignTool-v1.3.2.zip"
-          DIR="${GITHUB_WORKSPACE}/.codesigntool"
-          ZIP="${RUNNER_TEMP}/CodeSignTool.zip"
-          mkdir -p "$DIR"
-          echo "Downloading $URL"
-          curl -fsSL -o "$ZIP" "$URL"
-          python - <<'PY'
-          import zipfile, os
-          zip_path = os.environ["RUNNER_TEMP"] + "/CodeSignTool.zip"
-          dest = os.environ["GITHUB_WORKSPACE"] + "/.codesigntool"
-          with zipfile.ZipFile(zip_path) as z:
-              z.extractall(dest)
-          PY
-          JAR="$(find "$DIR" -name 'code_sign_tool-*.jar' | head -n 1)"
-          if [ -z "$JAR" ]; then
-            echo "CodeSignTool jar not found"
-            find "$DIR" | head -n 50
-            exit 1
-          fi
-          echo "Found $JAR"
-          echo "CODESIGNTOOL_DIR=$DIR" >> "$GITHUB_ENV"
-
-      - name: Verify eSigner credentials
-        shell: bash
-        env:
-          SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
-          SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
-          SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
-        run: |
-          set -euo pipefail
-          JAR="$(find "${CODESIGNTOOL_DIR}" -name 'code_sign_tool-*.jar' | head -n 1)"
-          echo "Listing credential IDs..."
-          java -jar "$JAR" get_credential_ids -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD"
-          echo "Credential info for $SSL_COM_ESIGNER_CREDENTIAL_ID ..."
-          java -jar "$JAR" credential_info -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD" -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID"
-
       - name: Build Windows installer
         run: npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
-      - name: Sign Windows installer
+      - name: Locate setup executable
         shell: bash
         run: |
-          set +e
-          echo "=== Debug environment ==="
-          echo "CODESIGNTOOL_DIR=${CODESIGNTOOL_DIR:-NOT SET}"
-          echo "USERNAME set: ${SSL_COM_ESIGNER_USERNAME:+yes}"
-          echo "PASSWORD set: ${SSL_COM_ESIGNER_PASSWORD:+yes}"
-          echo "CREDENTIAL_ID set: ${SSL_COM_ESIGNER_CREDENTIAL_ID:+yes}"
-          echo "TOTP_SECRET set: ${SSL_COM_ESIGNER_TOTP_SECRET:+yes}"
-          ls -la "${CODESIGNTOOL_DIR:-/nonexistent}" 2>&1 || true
-          find "${CODESIGNTOOL_DIR:-/nonexistent}" -name "*.jar" 2>&1 || true
-          ls -la release/ 2>&1 || true
-          echo "=== Running sign script ==="
-          output="$(node scripts/sign-release.cjs 2>&1)"
-          status=$?
-          printf "%s\n" "$output"
-          if [ "$status" -ne 0 ]; then
-            reason="$(printf "%s\n" "$output" | awk '/SIGN FAILED:|^Error:|CodeSignTool|Missing required environment variable/ { line=$0 } END { if (line != \"\") print line; else print \"Sign Windows installer failed; open step logs for details.\" }')"
-            echo "::error::${reason}"
-            exit "$status"
+          set -euo pipefail
+          SETUP_EXE=""
+          for file in release/*.exe; do
+            [ -e "$file" ] || continue
+            base="$(basename "$file")"
+            lower="$(printf "%s" "$base" | tr '[:upper:]' '[:lower:]')"
+            case "$lower" in
+              *uninstall*) continue ;;
+            esac
+            if [[ "$base" == MonaLive-Setup-* ]]; then
+              SETUP_EXE="$file"
+              break
+            fi
+            if [ -z "$SETUP_EXE" ]; then
+              SETUP_EXE="$file"
+            fi
+          done
+          if [ -z "$SETUP_EXE" ]; then
+            echo "::error::No setup exe found in release/"
+            exit 1
           fi
+          echo "SETUP_EXE=$SETUP_EXE" >> "$GITHUB_ENV"
+          echo "Will sign: $SETUP_EXE"
+
+      - name: Sign Windows installer
+        uses: step-security/esigner-codesign@v1
+        with:
+          command: sign
+          username: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
+          password: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
+          credential_id: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
+          file_path: ${{ env.SETUP_EXE }}
+          output_path: ${{ github.workspace }}/release
+          override: true
+          malware_block: true
+          clean_logs: true
+          environment_name: PROD
+
+      - name: Refresh release metadata after signing
+        run: node scripts/sign-release.cjs
         env:
-          SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
-          SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
-          SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
-          SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
-          CODESIGNTOOL_DIR: ${{ env.CODESIGNTOOL_DIR }}
+          SKIP_SIGN: "true"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
