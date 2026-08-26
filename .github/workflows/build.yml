@@ -182,24 +182,7 @@ jobs:
           status=$?
           printf "%s\n" "$output"
           if [ "$status" -ne 0 ]; then
-            export SIGN_OUTPUT="$output"
-            reason="$(python - <<'PY'
-import os
-text = os.environ.get("SIGN_OUTPUT", "")
-interesting = []
-for line in text.splitlines():
-    s = line.strip()
-    if not s:
-        continue
-    if "SIGN FAILED:" in s or s.startswith("Error:") or "CodeSignTool" in s or "Missing required environment variable" in s:
-        interesting.append(s)
-if interesting:
-    print(interesting[-1])
-else:
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    print(lines[-1] if lines else "Sign Windows installer failed; open step logs for details.")
-PY
-)"
+            reason="$(printf "%s\n" "$output" | awk '/SIGN FAILED:|^Error:|CodeSignTool|Missing required environment variable/ { line=$0 } END { if (line != \"\") print line; else print \"Sign Windows installer failed; open step logs for details.\" }')"
             echo "::error::${reason}"
             exit "$status"
           fi
