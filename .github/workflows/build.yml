@@ -108,35 +108,44 @@ jobs:
           echo "Code-signing secrets present"
 
       - name: Download CodeSignTool
-        shell: pwsh
+        shell: bash
         run: |
-          $url = "https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.2/CodeSignTool-v1.3.2.zip"
-          $zip = Join-Path $env:RUNNER_TEMP "CodeSignTool.zip"
-          $dir = Join-Path $pwd ".codesigntool"
-          New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          Write-Host "Downloading $url"
-          Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-          Expand-Archive -LiteralPath $zip -DestinationPath $dir -Force
-          $jar = Get-ChildItem -Path $dir -Recurse -Filter "code_sign_tool-*.jar" | Select-Object -First 1
-          if (-not $jar) { throw "CodeSignTool jar not found after extract" }
-          Write-Host "Found $($jar.FullName)"
-          "CODESIGNTOOL_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          set -euo pipefail
+          URL="https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.2/CodeSignTool-v1.3.2.zip"
+          DIR="${GITHUB_WORKSPACE}/.codesigntool"
+          ZIP="${RUNNER_TEMP}/CodeSignTool.zip"
+          mkdir -p "$DIR"
+          echo "Downloading $URL"
+          curl -fsSL -o "$ZIP" "$URL"
+          python - <<'PY'
+          import zipfile, os
+          zip_path = os.environ["RUNNER_TEMP"] + "/CodeSignTool.zip"
+          dest = os.environ["GITHUB_WORKSPACE"] + "/.codesigntool"
+          with zipfile.ZipFile(zip_path) as z:
+              z.extractall(dest)
+          PY
+          JAR="$(find "$DIR" -name 'code_sign_tool-*.jar' | head -n 1)"
+          if [ -z "$JAR" ]; then
+            echo "CodeSignTool jar not found"
+            find "$DIR" | head -n 50
+            exit 1
+          fi
+          echo "Found $JAR"
+          echo "CODESIGNTOOL_DIR=$DIR" >> "$GITHUB_ENV"
 
       - name: Verify eSigner credentials
-        shell: pwsh
+        shell: bash
         env:
           SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
           SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
         run: |
-          $jar = Get-ChildItem -Path .codesigntool -Recurse -Filter "code_sign_tool-*.jar" | Select-Object -First 1
-          $cwd = Split-Path (Split-Path $jar.FullName -Parent) -Parent
-          Write-Host "Listing credential IDs for account..."
-          & java -jar $jar.FullName get_credential_ids "-username=$env:SSL_COM_ESIGNER_USERNAME" "-password=$env:SSL_COM_ESIGNER_PASSWORD"
-          if ($LASTEXITCODE -ne 0) { throw "get_credential_ids failed - check SSL.com username/password" }
-          Write-Host "Fetching credential info for $env:SSL_COM_ESIGNER_CREDENTIAL_ID ..."
-          & java -jar $jar.FullName credential_info "-username=$env:SSL_COM_ESIGNER_USERNAME" "-password=$env:SSL_COM_ESIGNER_PASSWORD" "-credential_id=$env:SSL_COM_ESIGNER_CREDENTIAL_ID"
-          if ($LASTEXITCODE -ne 0) { throw "credential_info failed - check SSL_COM_ESIGNER_CREDENTIAL_ID" }
+          set -euo pipefail
+          JAR="$(find "${CODESIGNTOOL_DIR}" -name 'code_sign_tool-*.jar' | head -n 1)"
+          echo "Listing credential IDs..."
+          java -jar "$JAR" get_credential_ids -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD"
+          echo "Credential info for $SSL_COM_ESIGNER_CREDENTIAL_ID ..."
+          java -jar "$JAR" credential_info -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD" -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID"
 
       - name: Build Windows installer
         run: npx electron-builder --win --publish never
@@ -145,8 +154,15 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Sign Windows installer
-        shell: pwsh
-        run: node scripts/sign-release.cjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "CODESIGNTOOL_DIR=${CODESIGNTOOL_DIR:-}"
+          echo "Release contents:"
+          ls -la release || true
+          echo "CodeSignTool contents:"
+          find "${CODESIGNTOOL_DIR:-.codesigntool}" -maxdepth 3 -type f | head -n 40 || true
+          node scripts/sign-release.cjs
         env:
           SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}

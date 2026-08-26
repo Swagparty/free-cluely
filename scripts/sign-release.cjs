@@ -108,8 +108,16 @@ function updateLatestYml(releaseDir, exePath) {
 function main() {
   const releaseDir = path.resolve(process.cwd(), "release")
   const toolDir = process.env.CODESIGNTOOL_DIR || path.resolve(process.cwd(), ".codesigntool")
+  console.log(`CODESIGNTOOL_DIR=${toolDir}`)
+  console.log(`releaseDir=${releaseDir}`)
+  console.log(`release files=${fs.existsSync(releaseDir) ? fs.readdirSync(releaseDir).join(", ") : "(missing)"}`)
+
   const jar = findJar(toolDir)
   if (!jar) throw new Error(`CodeSignTool jar not found in ${toolDir}`)
+  console.log(`Using jar ${jar}`)
+
+  const totp = requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET")
+  console.log(`TOTP secret length=${totp.length}`)
 
   const exes = fs
     .readdirSync(releaseDir)
