@@ -6,15 +6,24 @@ const path = require("node:path")
 
 function requiredEnv(name) {
   const value = process.env[name]
-  if (!value) throw new Error(`Missing required environment variable: ${name}`)
-  return value.trim()
+  if (!value || !String(value).trim()) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return String(value).trim()
 }
 
 function findJar(rootDir) {
+  if (!rootDir || !fs.existsSync(rootDir)) return null
   const stack = [rootDir]
   while (stack.length) {
     const dir = stack.pop()
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    let entries
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
       const full = path.join(dir, entry.name)
       if (entry.isDirectory()) stack.push(full)
       else if (/code_sign_tool-.*\.jar$/i.test(entry.name)) return full
@@ -35,29 +44,36 @@ function signFile(jar, filePath) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "mona-sign-"))
   try {
     console.log(`Signing ${filePath}`)
-    const result = spawnSync(
-      "java",
-      [
-        "-jar",
-        jar,
-        "sign",
-        `-username=${username}`,
-        `-password=${password}`,
-        `-credential_id=${credentialId}`,
-        `-totp_secret=${totpSecret}`,
-        `-input_file_path=${filePath}`,
-        `-output_dir_path=${outDir}`,
-        "-override=true"
-      ],
-      {
-        encoding: "utf8",
-        cwd: path.join(path.dirname(jar), ".."),
-        windowsHide: true,
-        maxBuffer: 20 * 1024 * 1024
-      }
+    const args = [
+      "-jar",
+      jar,
+      "sign",
+      `-username=${username}`,
+      `-password=${password}`,
+      `-credential_id=${credentialId}`,
+      `-totp_secret=${totpSecret}`,
+      `-input_file_path=${filePath}`,
+      `-output_dir_path=${outDir}`,
+      "-override=true"
+    ]
+    console.log(
+      `java ${args
+        .map((a) =>
+          a.startsWith("-password=") || a.startsWith("-totp_secret=")
+            ? `${a.split("=")[0]}=***`
+            : a
+        )
+        .join(" ")}`
     )
+    const result = spawnSync("java", args, {
+      encoding: "utf8",
+      cwd: path.join(path.dirname(jar), ".."),
+      windowsHide: true,
+      maxBuffer: 20 * 1024 * 1024
+    })
     if (result.stdout) console.log(result.stdout)
     if (result.stderr) console.error(result.stderr)
+    if (result.error) throw result.error
     if (result.status !== 0) {
       throw new Error(`CodeSignTool exited with code ${result.status}`)
     }
@@ -67,7 +83,9 @@ function signFile(jar, filePath) {
     }
     const signed = path.join(outDir, path.basename(filePath))
     if (!fs.existsSync(signed)) {
-      throw new Error(`Signed output missing: ${signed}`)
+      throw new Error(
+        `Signed output missing: ${signed}. Dir=${fs.readdirSync(outDir).join(", ") || "(empty)"}`
+      )
     }
     fs.copyFileSync(signed, filePath)
     console.log(`Signed OK: ${path.basename(filePath)}`)
@@ -105,35 +123,54 @@ function updateLatestYml(releaseDir, exePath) {
   console.log(`Updated ${ymlPath} for ${fileName}`)
 }
 
+function pickSetupExe(releaseDir) {
+  const names = fs.readdirSync(releaseDir)
+  console.log(`release files: ${names.join(" | ")}`)
+  const preferred = names.filter((name) => /^MonaLive-Setup-.*\.exe$/i.test(name))
+  if (preferred.length) return preferred.map((n) => path.join(releaseDir, n))
+  const fallback = names.filter(
+    (name) =>
+      /\.exe$/i.test(name) &&
+      !/uninstall/i.test(name) &&
+      !/\.blockmap$/i.test(name)
+  )
+  return fallback.map((n) => path.join(releaseDir, n))
+}
+
 function main() {
-  const releaseDir = path.resolve(process.cwd(), "release")
-  const toolDir = process.env.CODESIGNTOOL_DIR || path.resolve(process.cwd(), ".codesigntool")
-  console.log(`CODESIGNTOOL_DIR=${toolDir}`)
-  console.log(`releaseDir=${releaseDir}`)
-  console.log(`release files=${fs.existsSync(releaseDir) ? fs.readdirSync(releaseDir).join(", ") : "(missing)"}`)
+  try {
+    const releaseDir = path.resolve(process.cwd(), "release")
+    const toolDir = process.env.CODESIGNTOOL_DIR || path.resolve(process.cwd(), ".codesigntool")
+    console.log(`cwd=${process.cwd()}`)
+    console.log(`CODESIGNTOOL_DIR=${toolDir}`)
+    console.log(`releaseDir=${releaseDir} exists=${fs.existsSync(releaseDir)}`)
 
-  const jar = findJar(toolDir)
-  if (!jar) throw new Error(`CodeSignTool jar not found in ${toolDir}`)
-  console.log(`Using jar ${jar}`)
+    const jar = findJar(toolDir)
+    if (!jar) throw new Error(`CodeSignTool jar not found in ${toolDir}`)
+    console.log(`Using jar ${jar}`)
 
-  const totp = requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET")
-  console.log(`TOTP secret length=${totp.length}`)
+    const totp = requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET")
+    console.log(`TOTP secret length=${totp.length}`)
 
-  const exes = fs
-    .readdirSync(releaseDir)
-    .filter((name) => /^MonaLive-Setup-.*\.exe$/i.test(name))
-    .map((name) => path.join(releaseDir, name))
-
-  if (!exes.length) throw new Error(`No MonaLive-Setup-*.exe found in ${releaseDir}`)
-
-  for (const exe of exes) {
-    signFile(jar, exe)
-    updateLatestYml(releaseDir, exe)
-    const blockmap = `${exe}.blockmap`
-    if (fs.existsSync(blockmap)) {
-      fs.unlinkSync(blockmap)
-      console.log(`Removed stale ${path.basename(blockmap)}`)
+    if (!fs.existsSync(releaseDir)) {
+      throw new Error(`release dir missing: ${releaseDir}`)
     }
+
+    const exes = pickSetupExe(releaseDir)
+    if (!exes.length) throw new Error(`No setup .exe found in ${releaseDir}`)
+
+    for (const exe of exes) {
+      signFile(jar, exe)
+      updateLatestYml(releaseDir, exe)
+      const blockmap = `${exe}.blockmap`
+      if (fs.existsSync(blockmap)) {
+        fs.unlinkSync(blockmap)
+        console.log(`Removed stale ${path.basename(blockmap)}`)
+      }
+    }
+  } catch (err) {
+    console.error("SIGN FAILED:", err && err.stack ? err.stack : err)
+    process.exit(1)
   }
 }
 

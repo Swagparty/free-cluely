@@ -154,20 +154,13 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Sign Windows installer
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "CODESIGNTOOL_DIR=${CODESIGNTOOL_DIR:-}"
-          echo "Release contents:"
-          ls -la release || true
-          echo "CodeSignTool contents:"
-          find "${CODESIGNTOOL_DIR:-.codesigntool}" -maxdepth 3 -type f | head -n 40 || true
-          node scripts/sign-release.cjs
+        run: node scripts/sign-release.cjs
         env:
           SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
           SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
           SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
+          CODESIGNTOOL_DIR: ${{ env.CODESIGNTOOL_DIR }}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
