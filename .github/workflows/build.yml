@@ -122,6 +122,22 @@ jobs:
           Write-Host "Found $($jar.FullName)"
           "CODESIGNTOOL_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Verify eSigner credentials
+        shell: pwsh
+        env:
+          SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
+          SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
+          SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
+        run: |
+          $jar = Get-ChildItem -Path .codesigntool -Recurse -Filter "code_sign_tool-*.jar" | Select-Object -First 1
+          $cwd = Split-Path (Split-Path $jar.FullName -Parent) -Parent
+          Write-Host "Listing credential IDs for account..."
+          & java -jar $jar.FullName get_credential_ids "-username=$env:SSL_COM_ESIGNER_USERNAME" "-password=$env:SSL_COM_ESIGNER_PASSWORD"
+          if ($LASTEXITCODE -ne 0) { throw "get_credential_ids failed - check SSL.com username/password" }
+          Write-Host "Fetching credential info for $env:SSL_COM_ESIGNER_CREDENTIAL_ID ..."
+          & java -jar $jar.FullName credential_info "-username=$env:SSL_COM_ESIGNER_USERNAME" "-password=$env:SSL_COM_ESIGNER_PASSWORD" "-credential_id=$env:SSL_COM_ESIGNER_CREDENTIAL_ID"
+          if ($LASTEXITCODE -ne 0) { throw "credential_info failed - check SSL_COM_ESIGNER_CREDENTIAL_ID" }
+
       - name: Build Windows installer
         run: npx electron-builder --win --publish never
         env:

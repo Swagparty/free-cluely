@@ -87,29 +87,19 @@ async function ensureCodeSignToolDir() {
 }
 
 function runCodeSignTool(toolDir, args) {
-  const bat = findBat(toolDir)
   const jar = findJar(toolDir)
-  let result
-  if (bat) {
-    console.log(`[sign] Using ${bat}`)
-    result = spawnSync(bat, args, {
-      encoding: "utf8",
-      cwd: path.dirname(bat),
-      env: process.env,
-      shell: true,
-      maxBuffer: 20 * 1024 * 1024
-    })
-  } else if (jar) {
-    console.log(`[sign] Using java -jar ${jar}`)
-    result = spawnSync("java", ["-jar", jar, ...args], {
-      encoding: "utf8",
-      cwd: path.dirname(jar),
-      env: process.env,
-      maxBuffer: 20 * 1024 * 1024
-    })
-  } else {
-    throw new Error("Neither CodeSignTool.bat nor jar found")
+  if (!jar) {
+    throw new Error(`CodeSignTool jar not found under ${toolDir}`)
   }
+  console.log(`[sign] Using java -jar ${jar}`)
+  console.log(`[sign] Args: ${args.map((a) => (a.startsWith("-password=") || a.startsWith("-totp_secret=") ? a.split("=")[0] + "=***" : a)).join(" ")}`)
+  const result = spawnSync("java", ["-jar", jar, ...args], {
+    encoding: "utf8",
+    cwd: path.join(path.dirname(jar), ".."),
+    env: process.env,
+    windowsHide: true,
+    maxBuffer: 20 * 1024 * 1024
+  })
 
   if (result.stdout) console.log(result.stdout)
   if (result.stderr) console.error(result.stderr)
