@@ -67,7 +67,7 @@ jobs:
           cache: npm
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -93,13 +93,24 @@ jobs:
           SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
           SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
         run: |
+          set -euo pipefail
           missing=0
           for name in SSL_COM_ESIGNER_USERNAME SSL_COM_ESIGNER_PASSWORD SSL_COM_ESIGNER_CREDENTIAL_ID SSL_COM_ESIGNER_TOTP_SECRET; do
-            if [ -z "${!name}" ]; then
+            value="$(printf "%s" "${!name}" | tr -d '[:space:]')"
+            if [ -z "$value" ]; then
               echo "::error::Missing GitHub secret: $name"
               missing=1
             fi
           done
+          totp_normalized="$(printf "%s" "${SSL_COM_ESIGNER_TOTP_SECRET}" | tr -d '[:space:]-' | tr '[:lower:]' '[:upper:]')"
+          if ! printf "%s" "$totp_normalized" | grep -Eq '^[A-Z2-7]+=*$'; then
+            echo "::error::SSL_COM_ESIGNER_TOTP_SECRET is not Base32. Store the eSigner secret key, not a 6-digit OTP code."
+            missing=1
+          fi
+          if [ "${#totp_normalized}" -lt 16 ]; then
+            echo "::error::SSL_COM_ESIGNER_TOTP_SECRET is too short (${#totp_normalized})."
+            missing=1
+          fi
           if [ "$missing" -ne 0 ]; then
             echo "Add the four SSL_COM_ESIGNER_* secrets under Settings → Secrets and variables → Actions"
             echo "Activate eSigner on SSL.com first (PIN + TOTP QR), then store username, password, credential ID, and TOTP secret."

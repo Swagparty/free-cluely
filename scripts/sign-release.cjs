@@ -12,6 +12,30 @@ function requiredEnv(name) {
   return String(value).trim()
 }
 
+function normalizeTotpSecret(value) {
+  return String(value || "")
+    .replace(/[\s-]+/g, "")
+    .toUpperCase()
+}
+
+function validateTotpSecret(rawValue) {
+  const normalized = normalizeTotpSecret(rawValue)
+  if (!normalized) {
+    throw new Error("SSL_COM_ESIGNER_TOTP_SECRET is empty after trimming")
+  }
+  if (!/^[A-Z2-7]+=*$/.test(normalized)) {
+    throw new Error(
+      "SSL_COM_ESIGNER_TOTP_SECRET is not valid Base32. Use the secret key from eSigner enrollment, not the 6-digit OTP code."
+    )
+  }
+  if (normalized.length < 16) {
+    throw new Error(
+      `SSL_COM_ESIGNER_TOTP_SECRET looks too short (${normalized.length}). Use the full Base32 secret from the QR enrollment.`
+    )
+  }
+  return normalized
+}
+
 function findJar(rootDir) {
   if (!rootDir || !fs.existsSync(rootDir)) return null
   const stack = [rootDir]
@@ -40,7 +64,7 @@ function signFile(jar, filePath) {
   const username = requiredEnv("SSL_COM_ESIGNER_USERNAME")
   const password = requiredEnv("SSL_COM_ESIGNER_PASSWORD")
   const credentialId = requiredEnv("SSL_COM_ESIGNER_CREDENTIAL_ID")
-  const totpSecret = requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET")
+  const totpSecret = validateTotpSecret(requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET"))
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "mona-sign-"))
   try {
     console.log(`Signing ${filePath}`)
@@ -163,8 +187,8 @@ function main() {
       console.log(`${name}: ${val ? `set (len=${val.length})` : "NOT SET"}`)
     }
 
-    const totp = requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET")
-    console.log(`TOTP secret length=${totp.length}`)
+    const totp = validateTotpSecret(requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET"))
+    console.log(`TOTP secret normalized length=${totp.length}`)
 
     if (!fs.existsSync(releaseDir)) {
       throw new Error(`release dir missing: ${releaseDir}`)
