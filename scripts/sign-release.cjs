@@ -13,9 +13,7 @@ function requiredEnv(name) {
 }
 
 function normalizeTotpSecret(value) {
-  return String(value || "")
-    .replace(/[\s-]+/g, "")
-    .toUpperCase()
+  return String(value || "").replace(/\s+/g, "")
 }
 
 function validateTotpSecret(rawValue) {
@@ -23,14 +21,16 @@ function validateTotpSecret(rawValue) {
   if (!normalized) {
     throw new Error("SSL_COM_ESIGNER_TOTP_SECRET is empty after trimming")
   }
-  if (!/^[A-Z2-7]+=*$/.test(normalized)) {
+  const looksBase32 = /^[A-Za-z2-7]+=*$/.test(normalized)
+  const looksBase64 = /^[A-Za-z0-9+/_-]+=*$/.test(normalized)
+  if (!looksBase32 && !looksBase64) {
     throw new Error(
-      "SSL_COM_ESIGNER_TOTP_SECRET is not valid Base32. Use the secret key from eSigner enrollment, not the 6-digit OTP code."
+      "SSL_COM_ESIGNER_TOTP_SECRET format is invalid. Use the exact eSigner secret value (not a 6-digit OTP code)."
     )
   }
   if (normalized.length < 16) {
     throw new Error(
-      `SSL_COM_ESIGNER_TOTP_SECRET looks too short (${normalized.length}). Use the full Base32 secret from the QR enrollment.`
+      `SSL_COM_ESIGNER_TOTP_SECRET looks too short (${normalized.length}). Use the full eSigner secret value from enrollment.`
     )
   }
   return normalized

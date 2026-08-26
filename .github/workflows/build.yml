@@ -102,9 +102,9 @@ jobs:
               missing=1
             fi
           done
-          totp_normalized="$(printf "%s" "${SSL_COM_ESIGNER_TOTP_SECRET}" | tr -d '[:space:]-' | tr '[:lower:]' '[:upper:]')"
-          if ! printf "%s" "$totp_normalized" | grep -Eq '^[A-Z2-7]+=*$'; then
-            echo "::error::SSL_COM_ESIGNER_TOTP_SECRET is not Base32. Store the eSigner secret key, not a 6-digit OTP code."
+          totp_normalized="$(printf "%s" "${SSL_COM_ESIGNER_TOTP_SECRET}" | tr -d '[:space:]')"
+          if ! printf "%s" "$totp_normalized" | grep -Eq '^[A-Za-z2-7]+=*$|^[A-Za-z0-9+/_-]+=*$'; then
+            echo "::error::SSL_COM_ESIGNER_TOTP_SECRET format is invalid. Store the exact eSigner secret value, not a 6-digit OTP code."
             missing=1
           fi
           if [ "${#totp_normalized}" -lt 16 ]; then
