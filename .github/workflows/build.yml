@@ -154,7 +154,19 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Sign Windows installer
-        run: node scripts/sign-release.cjs
+        shell: bash
+        run: |
+          echo "=== Debug environment ==="
+          echo "CODESIGNTOOL_DIR=${CODESIGNTOOL_DIR:-NOT SET}"
+          echo "USERNAME set: ${SSL_COM_ESIGNER_USERNAME:+yes}"
+          echo "PASSWORD set: ${SSL_COM_ESIGNER_PASSWORD:+yes}"
+          echo "CREDENTIAL_ID set: ${SSL_COM_ESIGNER_CREDENTIAL_ID:+yes}"
+          echo "TOTP_SECRET set: ${SSL_COM_ESIGNER_TOTP_SECRET:+yes}"
+          ls -la "${CODESIGNTOOL_DIR:-/nonexistent}" 2>&1 || true
+          find "${CODESIGNTOOL_DIR:-/nonexistent}" -name "*.jar" 2>&1 || true
+          ls -la release/ 2>&1 || true
+          echo "=== Running sign script ==="
+          node scripts/sign-release.cjs
         env:
           SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}

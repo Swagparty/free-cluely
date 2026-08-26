@@ -139,15 +139,29 @@ function pickSetupExe(releaseDir) {
 
 function main() {
   try {
+    console.log("=== sign-release.cjs starting ===")
+    console.log(`Node version: ${process.version}`)
+    console.log(`Platform: ${process.platform}`)
     const releaseDir = path.resolve(process.cwd(), "release")
     const toolDir = process.env.CODESIGNTOOL_DIR || path.resolve(process.cwd(), ".codesigntool")
     console.log(`cwd=${process.cwd()}`)
-    console.log(`CODESIGNTOOL_DIR=${toolDir}`)
+    console.log(`CODESIGNTOOL_DIR env=${process.env.CODESIGNTOOL_DIR || "(not set)"}`)
+    console.log(`toolDir resolved=${toolDir}`)
+    console.log(`toolDir exists=${fs.existsSync(toolDir)}`)
     console.log(`releaseDir=${releaseDir} exists=${fs.existsSync(releaseDir)}`)
 
+    if (fs.existsSync(toolDir)) {
+      console.log(`toolDir contents: ${fs.readdirSync(toolDir).join(", ")}`)
+    }
     const jar = findJar(toolDir)
     if (!jar) throw new Error(`CodeSignTool jar not found in ${toolDir}`)
     console.log(`Using jar ${jar}`)
+
+    const envNames = ["SSL_COM_ESIGNER_USERNAME", "SSL_COM_ESIGNER_PASSWORD", "SSL_COM_ESIGNER_CREDENTIAL_ID", "SSL_COM_ESIGNER_TOTP_SECRET"]
+    for (const name of envNames) {
+      const val = process.env[name]
+      console.log(`${name}: ${val ? `set (len=${val.length})` : "NOT SET"}`)
+    }
 
     const totp = requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET")
     console.log(`TOTP secret length=${totp.length}`)
