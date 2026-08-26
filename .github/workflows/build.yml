@@ -107,6 +107,21 @@ jobs:
           fi
           echo "Code-signing secrets present"
 
+      - name: Download CodeSignTool
+        shell: pwsh
+        run: |
+          $url = "https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.2/CodeSignTool-v1.3.2.zip"
+          $zip = Join-Path $env:RUNNER_TEMP "CodeSignTool.zip"
+          $dir = Join-Path $pwd ".codesigntool"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Write-Host "Downloading $url"
+          Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+          Expand-Archive -LiteralPath $zip -DestinationPath $dir -Force
+          $jar = Get-ChildItem -Path $dir -Recurse -Filter "code_sign_tool-*.jar" | Select-Object -First 1
+          if (-not $jar) { throw "CodeSignTool jar not found after extract" }
+          Write-Host "Found $($jar.FullName)"
+          "CODESIGNTOOL_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Build Windows installer
         run: npx electron-builder --win --publish never
         env:
@@ -116,6 +131,7 @@ jobs:
           SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
           SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
           SSL_COM_ESIGNER_DEBUG: "true"
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

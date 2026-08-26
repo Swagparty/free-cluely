@@ -74,10 +74,13 @@
       ],
       "icon": "assets/icons/png/icon.png",
       "artifactName": "MonaLive-Setup-${version}.${ext}",
+      "publisherName": "MONA AI GmbH",
+      "signingHashAlgorithms": ["sha256"],
       "sign": "./scripts/windows-sign.cjs",
-      "signingHashAlgorithms": [
-        "sha256"
-      ]
+      "signtoolOptions": {
+        "sign": "./scripts/windows-sign.cjs",
+        "publisherName": "MONA AI GmbH"
+      }
     },
     "linux": {
       "target": [

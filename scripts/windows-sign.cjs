@@ -15,99 +15,143 @@ function requiredEnv(name) {
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`)
   }
-  return value
+  return value.trim()
 }
 
-function findJar(rootDir) {
-  if (!fs.existsSync(rootDir)) return null
+function findFile(rootDir, predicate) {
+  if (!rootDir || !fs.existsSync(rootDir)) return null
   const stack = [rootDir]
   while (stack.length) {
     const dir = stack.pop()
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    let entries
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
       const full = path.join(dir, entry.name)
       if (entry.isDirectory()) stack.push(full)
-      else if (/code_sign_tool-.*\.jar$/i.test(entry.name) || entry.name === "code_sign_tool.jar") {
-        return full
-      }
+      else if (predicate(entry.name, full)) return full
     }
   }
   return null
 }
 
-async function ensureCodeSignTool() {
+function findJar(rootDir) {
+  return findFile(rootDir, (name) => /code_sign_tool-.*\.jar$/i.test(name) || name === "code_sign_tool.jar")
+}
+
+function findBat(rootDir) {
+  return findFile(rootDir, (name) => /^CodeSignTool\.bat$/i.test(name))
+}
+
+async function ensureCodeSignToolDir() {
+  if (process.env.CODESIGNTOOL_DIR && fs.existsSync(process.env.CODESIGNTOOL_DIR)) {
+    return process.env.CODESIGNTOOL_DIR
+  }
+
   const cacheDir = path.join(process.cwd(), ".codesigntool")
-  const existing = findJar(cacheDir) || findJar(path.join(process.cwd(), "node_modules", "electron-builder-ssl-com-esigner", "esigner"))
-  if (existing) return existing
+  if (findJar(cacheDir)) return cacheDir
 
   fs.mkdirSync(cacheDir, { recursive: true })
   const zipPath = path.join(os.tmpdir(), `codesigntool-${randomUUID()}.zip`)
-  console.log(`Downloading CodeSignTool from ${ESIGNER_ZIP_URL}`)
+  console.log(`[sign] Downloading CodeSignTool from ${ESIGNER_ZIP_URL}`)
   const res = await fetch(ESIGNER_ZIP_URL)
   if (!res.ok || !res.body) {
     throw new Error(`Failed to download CodeSignTool: ${res.status} ${res.statusText}`)
   }
   await pipeline(Readable.fromWeb(res.body), createWriteStream(zipPath))
+  console.log(`[sign] Downloaded ${(fs.statSync(zipPath).size / 1024 / 1024).toFixed(1)} MB`)
 
-  const { execFileSync } = require("node:child_process")
-  execFileSync("powershell.exe", [
-    "-NoProfile",
-    "-Command",
-    `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${cacheDir.replace(/'/g, "''")}' -Force`
-  ], { stdio: "inherit" })
+  const expand = spawnSync(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-Command",
+      `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${cacheDir.replace(/'/g, "''")}' -Force`
+    ],
+    { encoding: "utf8" }
+  )
+  if (expand.status !== 0) {
+    console.error(expand.stdout || "")
+    console.error(expand.stderr || "")
+    throw new Error(`Expand-Archive failed with code ${expand.status}`)
+  }
   fs.unlinkSync(zipPath)
 
-  const jar = findJar(cacheDir)
-  if (!jar) {
-    throw new Error("CodeSignTool jar not found after download")
+  if (!findJar(cacheDir)) {
+    throw new Error(`CodeSignTool jar not found under ${cacheDir}`)
   }
-  return jar
+  return cacheDir
 }
 
-function runJava(jar, args) {
-  const result = spawnSync("java", ["-jar", jar, ...args], {
-    encoding: "utf8",
-    cwd: path.dirname(jar),
-    env: process.env,
-    maxBuffer: 10 * 1024 * 1024
-  })
+function runCodeSignTool(toolDir, args) {
+  const bat = findBat(toolDir)
+  const jar = findJar(toolDir)
+  let result
+  if (bat) {
+    console.log(`[sign] Using ${bat}`)
+    result = spawnSync(bat, args, {
+      encoding: "utf8",
+      cwd: path.dirname(bat),
+      env: process.env,
+      shell: true,
+      maxBuffer: 20 * 1024 * 1024
+    })
+  } else if (jar) {
+    console.log(`[sign] Using java -jar ${jar}`)
+    result = spawnSync("java", ["-jar", jar, ...args], {
+      encoding: "utf8",
+      cwd: path.dirname(jar),
+      env: process.env,
+      maxBuffer: 20 * 1024 * 1024
+    })
+  } else {
+    throw new Error("Neither CodeSignTool.bat nor jar found")
+  }
+
   if (result.stdout) console.log(result.stdout)
   if (result.stderr) console.error(result.stderr)
+  if (result.error) throw result.error
   if (result.status !== 0) {
     throw new Error(`CodeSignTool exited with code ${result.status}`)
   }
   const combined = `${result.stdout || ""}\n${result.stderr || ""}`
-  if (combined.split(/\r?\n/).some((line) => line.startsWith("Error:"))) {
+  if (combined.split(/\r?\n/).some((line) => /^Error:/i.test(line.trim()))) {
     throw new Error("CodeSignTool reported Error: in output")
   }
 }
 
 module.exports = async function sign(configuration) {
   const filePath = configuration.path
-  console.log(`Signing ${filePath} with SSL.com eSigner`)
+  console.log(`[sign] Signing ${filePath}`)
 
   const username = requiredEnv("SSL_COM_ESIGNER_USERNAME")
   const password = requiredEnv("SSL_COM_ESIGNER_PASSWORD")
   const credentialId = requiredEnv("SSL_COM_ESIGNER_CREDENTIAL_ID")
   const totpSecret = requiredEnv("SSL_COM_ESIGNER_TOTP_SECRET")
 
-  const jar = await ensureCodeSignTool()
+  const toolDir = await ensureCodeSignToolDir()
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "mona-sign-"))
   try {
-    runJava(jar, [
+    runCodeSignTool(toolDir, [
       "sign",
       `-username=${username}`,
       `-password=${password}`,
       `-credential_id=${credentialId}`,
       `-totp_secret=${totpSecret}`,
       `-input_file_path=${filePath}`,
-      `-output_dir_path=${outDir}`
+      `-output_dir_path=${outDir}`,
+      "-override=true"
     ])
     const signed = path.join(outDir, path.basename(filePath))
     if (!fs.existsSync(signed)) {
-      throw new Error(`Signed file not found at ${signed}`)
+      const files = fs.readdirSync(outDir)
+      throw new Error(`Signed file missing at ${signed}. Output dir: ${files.join(", ") || "(empty)"}`)
     }
     fs.copyFileSync(signed, filePath)
-    console.log(`Signed ${path.basename(filePath)}`)
+    console.log(`[sign] Signed ${path.basename(filePath)}`)
   } finally {
     fs.rmSync(outDir, { recursive: true, force: true })
   }
