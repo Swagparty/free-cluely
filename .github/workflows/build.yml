@@ -167,6 +167,7 @@ jobs:
       - name: Sign Windows installer
         shell: bash
         run: |
+          set +e
           echo "=== Debug environment ==="
           echo "CODESIGNTOOL_DIR=${CODESIGNTOOL_DIR:-NOT SET}"
           echo "USERNAME set: ${SSL_COM_ESIGNER_USERNAME:+yes}"
@@ -177,7 +178,31 @@ jobs:
           find "${CODESIGNTOOL_DIR:-/nonexistent}" -name "*.jar" 2>&1 || true
           ls -la release/ 2>&1 || true
           echo "=== Running sign script ==="
-          node scripts/sign-release.cjs
+          output="$(node scripts/sign-release.cjs 2>&1)"
+          status=$?
+          printf "%s\n" "$output"
+          if [ "$status" -ne 0 ]; then
+            export SIGN_OUTPUT="$output"
+            reason="$(python - <<'PY'
+import os
+text = os.environ.get("SIGN_OUTPUT", "")
+interesting = []
+for line in text.splitlines():
+    s = line.strip()
+    if not s:
+        continue
+    if "SIGN FAILED:" in s or s.startswith("Error:") or "CodeSignTool" in s or "Missing required environment variable" in s:
+        interesting.append(s)
+if interesting:
+    print(interesting[-1])
+else:
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    print(lines[-1] if lines else "Sign Windows installer failed; open step logs for details.")
+PY
+)"
+            echo "::error::${reason}"
+            exit "$status"
+          fi
         env:
           SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
