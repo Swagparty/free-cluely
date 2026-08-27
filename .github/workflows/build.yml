@@ -115,52 +115,54 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
-      - name: Locate setup executable
+      - name: Download CodeSignTool
         shell: bash
         run: |
           set -euo pipefail
-          SETUP_EXE=""
-          for file in release/*.exe; do
-            [ -e "$file" ] || continue
-            base="$(basename "$file")"
-            lower="$(printf "%s" "$base" | tr '[:upper:]' '[:lower:]')"
-            case "$lower" in
-              *uninstall*) continue ;;
-            esac
-            if [[ "$base" == MonaLive-Setup-* ]]; then
-              SETUP_EXE="$file"
-              break
-            fi
-            if [ -z "$SETUP_EXE" ]; then
-              SETUP_EXE="$file"
-            fi
-          done
-          if [ -z "$SETUP_EXE" ]; then
-            echo "::error::No setup exe found in release/"
+          URL="https://github.com/SSLcom/CodeSignTool/releases/download/v1.3.2/CodeSignTool-v1.3.2.zip"
+          DIR="${GITHUB_WORKSPACE}/.codesigntool"
+          ZIP="${RUNNER_TEMP}/CodeSignTool.zip"
+          mkdir -p "$DIR"
+          echo "Downloading $URL"
+          curl -fsSL -o "$ZIP" "$URL"
+          python - <<'PY'
+          import zipfile, os
+          zip_path = os.environ["RUNNER_TEMP"] + "/CodeSignTool.zip"
+          dest = os.environ["GITHUB_WORKSPACE"] + "/.codesigntool"
+          with zipfile.ZipFile(zip_path) as z:
+              z.extractall(dest)
+          PY
+          JAR="$(find "$DIR" -name 'code_sign_tool-*.jar' | head -n 1)"
+          if [ -z "$JAR" ]; then
+            echo "CodeSignTool jar not found"
+            find "$DIR" | head -n 50
             exit 1
           fi
-          echo "SETUP_EXE=$SETUP_EXE" >> "$GITHUB_ENV"
-          echo "Will sign: $SETUP_EXE"
+          echo "Found $JAR"
+          echo "CODESIGNTOOL_DIR=$DIR" >> "$GITHUB_ENV"
+
+      - name: Verify eSigner credentials
+        shell: bash
+        env:
+          SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
+          SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
+          SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
+        run: |
+          set -euo pipefail
+          JAR="$(find "${CODESIGNTOOL_DIR}" -name 'code_sign_tool-*.jar' | head -n 1)"
+          echo "Listing credential IDs..."
+          java -jar "$JAR" get_credential_ids -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD"
+          echo "Credential info for $SSL_COM_ESIGNER_CREDENTIAL_ID ..."
+          java -jar "$JAR" credential_info -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD" -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID"
 
       - name: Sign Windows installer
-        uses: step-security/esigner-codesign@v1
-        with:
-          command: sign
-          username: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
-          password: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
-          credential_id: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
-          totp_secret: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
-          file_path: ${{ env.SETUP_EXE }}
-          output_path: ${{ github.workspace }}/release
-          override: true
-          malware_block: true
-          clean_logs: true
-          environment_name: PROD
-
-      - name: Refresh release metadata after signing
         run: node scripts/sign-release.cjs
         env:
-          SKIP_SIGN: "true"
+          SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
+          SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
+          SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
+          SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
+          CODESIGNTOOL_DIR: ${{ env.CODESIGNTOOL_DIR }}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
