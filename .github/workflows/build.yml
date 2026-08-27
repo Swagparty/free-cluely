@@ -156,7 +156,17 @@ jobs:
           java -jar "$JAR" credential_info -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD" -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID"
 
       - name: Sign Windows installer
-        run: node scripts/sign-release.cjs
+        shell: bash
+        run: |
+          set +e
+          output="$(node scripts/sign-release.cjs 2>&1)"
+          status=$?
+          printf "%s\n" "$output"
+          if [ "$status" -ne 0 ]; then
+            reason="$(printf "%s\n" "$output" | awk '/SIGN FAILED:|^Error:|CodeSignTool|Missing required environment variable|hash needs to be scanned first/ { line=$0 } END { if (line != \"\") print line; else print \"Sign Windows installer failed; open step logs for details.\" }')"
+            echo "::error::${reason}"
+            exit "$status"
+          fi
         env:
           SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
