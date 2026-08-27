@@ -68,7 +68,7 @@ function signFile(jar, filePath) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "mona-sign-"))
   try {
     console.log(`Signing ${filePath}`)
-    const args = [
+    const baseArgs = [
       "-jar",
       jar,
       "sign",
@@ -77,31 +77,42 @@ function signFile(jar, filePath) {
       `-credential_id=${credentialId}`,
       `-totp_secret=${totpSecret}`,
       `-input_file_path=${filePath}`,
-      `-output_dir_path=${outDir}`,
-      "-override=true"
+      `-output_dir_path=${outDir}`
     ]
-    console.log(
-      `java ${args
-        .map((a) =>
-          a.startsWith("-password=") || a.startsWith("-totp_secret=")
-            ? `${a.split("=")[0]}=***`
-            : a
-        )
-        .join(" ")}`
-    )
-    const result = spawnSync("java", args, {
-      encoding: "utf8",
-      cwd: path.join(path.dirname(jar), ".."),
-      windowsHide: true,
-      maxBuffer: 20 * 1024 * 1024
-    })
+    const runSign = (extraArgs = []) => {
+      const args = [...baseArgs, ...extraArgs]
+      console.log(
+        `java ${args
+          .map((a) =>
+            a.startsWith("-password=") || a.startsWith("-totp_secret=")
+              ? `${a.split("=")[0]}=***`
+              : a
+          )
+          .join(" ")}`
+      )
+      return spawnSync("java", args, {
+        encoding: "utf8",
+        cwd: path.join(path.dirname(jar), ".."),
+        windowsHide: true,
+        maxBuffer: 20 * 1024 * 1024
+      })
+    }
+    let result = runSign()
+    let combined = `${result.stdout || ""}\n${result.stderr || ""}`
+    if (
+      result.status !== 0 &&
+      /hash needs to be scanned first before submitting for signing/i.test(combined)
+    ) {
+      console.log("Retrying with malware_block enabled")
+      result = runSign(["-malware_block"])
+      combined = `${result.stdout || ""}\n${result.stderr || ""}`
+    }
     if (result.stdout) console.log(result.stdout)
     if (result.stderr) console.error(result.stderr)
     if (result.error) throw result.error
     if (result.status !== 0) {
       throw new Error(`CodeSignTool exited with code ${result.status}`)
     }
-    const combined = `${result.stdout || ""}\n${result.stderr || ""}`
     if (combined.split(/\r?\n/).some((line) => /^Error:/i.test(line.trim()))) {
       throw new Error("CodeSignTool reported Error: in output")
     }
