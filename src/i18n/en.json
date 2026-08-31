@@ -50,9 +50,8 @@
     "openPlatform": "Sign in with MONA",
     "waiting": "Waiting for platform login...",
     "retry": "Try again",
-    "manualFallback": "Enter API key manually",
-    "haveKey": "I already have an API key",
-    "pasteKey": "Paste API key",
+    "cancel": "Cancel",
+    "browserHint": "Sign-in happens in your browser – including Microsoft SSO.",
     "tips": [
       "MONA gives you real-time suggestions for better questions during the interview.",
       "After the conversation, MONA automatically creates a structured scorecard.",

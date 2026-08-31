@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { Loader2, ExternalLink, Key, X, Sun, Moon, Lightbulb } from "lucide-react"
+import { Loader2, ExternalLink, X, Sun, Moon, Lightbulb } from "lucide-react"
 import { useSessionStore } from "../stores/sessionStore"
 
 interface LoginScreenProps {
@@ -14,10 +14,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const { t } = useTranslation()
   const { settings, updateSettings } = useSessionStore()
   const [waiting, setWaiting] = useState(false)
-  const [showManual, setShowManual] = useState(false)
-  const [manualKey, setManualKey] = useState("")
   const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
   const [showRetry, setShowRetry] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
   const [tipIndex, setTipIndex] = useState(0)
@@ -50,7 +47,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         onLoginSuccess()
       } else {
         setError(data.error || t("auth.error"))
-        setShowManual(true)
       }
     })
 
@@ -64,23 +60,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     setRetryCount((c) => c + 1)
     setWaiting(true)
     window.monacopilot.openPlatformLogin()
-  }
-
-  const handleManualLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!manualKey.trim() || !window.monacopilot) return
-
-    setError("")
-    setLoading(true)
-
-    const result = await window.monacopilot.login(manualKey.trim())
-    if (result.success) {
-      onLoginSuccess()
-    } else {
-      setError(result.error || t("auth.error"))
-    }
-
-    setLoading(false)
   }
 
   return (
@@ -153,11 +132,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               </button>
             )}
             <button
-              onClick={() => { setWaiting(false); setShowManual(true) }}
+              onClick={() => setWaiting(false)}
               className="text-[10px] text-copilot-text-muted hover:text-copilot-text-secondary
                 transition-colors underline"
             >
-              {t("auth.manualFallback")}
+              {t("auth.cancel")}
             </button>
           </div>
         ) : (
@@ -171,44 +150,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               {t("auth.openPlatform")}
             </button>
 
-            {!showManual && (
-              <button
-                onClick={() => setShowManual(true)}
-                className="text-[10px] text-copilot-text-muted hover:text-copilot-text-secondary
-                  transition-colors text-center"
-              >
-                {t("auth.haveKey")}
-              </button>
-            )}
-
-            {showManual && (
-              <form onSubmit={handleManualLogin} className="flex flex-col gap-3 mt-2
-                border-t border-copilot-border pt-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Key size={12} className="text-copilot-text-muted" />
-                  <span className="text-xs text-copilot-text-secondary">{t("auth.pasteKey")}</span>
-                </div>
-                <input
-                  type="text"
-                  value={manualKey}
-                  onChange={(e) => setManualKey(e.target.value)}
-                  placeholder="API-Key..."
-                  className="w-full px-3 py-2.5 bg-mona-surface border border-copilot-border rounded-md
-                    text-copilot-text text-sm outline-none focus:border-mona-primary transition-colors
-                    font-mono text-xs"
-                  disabled={loading}
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !manualKey.trim()}
-                  className="w-full py-2.5 rounded-md mona-gradient text-white text-sm font-semibold
-                    transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                >
-                  {loading ? t("auth.loggingIn") : t("auth.login")}
-                </button>
-              </form>
-            )}
+            <p className="text-[10px] text-copilot-text-muted text-center leading-relaxed">
+              {t("auth.browserHint")}
+            </p>
           </div>
         )}
       </div>
