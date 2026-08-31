@@ -156,25 +156,72 @@ jobs:
           java -jar "$JAR" credential_info -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD" -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID"
 
       - name: Sign Windows installer
+        id: sign_windows
         shell: bash
-        run: |
-          set +e
-          output="$(node scripts/sign-release.cjs 2>&1)"
-          status=$?
-          printf "%s\n" "$output"
-          if [ "$status" -ne 0 ]; then
-            reason="$(printf "%s\n" "$output" | awk '/SIGN FAILED:|^Error:|CodeSignTool|Missing required environment variable|hash needs to be scanned first/ { line=$0 } END { if (line != \"\") print line; else print \"Sign Windows installer failed; open step logs for details.\" }')"
-            echo "::error::${reason}"
-            exit "$status"
-          fi
         env:
           SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
           SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
           SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
-          CODESIGNTOOL_DIR: ${{ env.CODESIGNTOOL_DIR }}
+        run: |
+          set +e
+          {
+            JAR="$(find "${CODESIGNTOOL_DIR}" -name 'code_sign_tool-*.jar' | head -n 1)"
+            CONF="$(find "${CODESIGNTOOL_DIR}" -type d -name conf | head -n 1)"
+            TOOL_ROOT="$(dirname "$CONF")"
+            EXE="$(cd "${GITHUB_WORKSPACE}" && find release -maxdepth 1 -name 'MonaLive-Setup-*.exe' | head -n 1)"
+            EXE_ABS="${GITHUB_WORKSPACE}/${EXE}"
+            OUT_DIR="${RUNNER_TEMP}/signed"
+            echo "jar=$JAR"
+            echo "tool_root=$TOOL_ROOT"
+            echo "exe=$EXE_ABS"
+            rm -rf "$OUT_DIR"
+            mkdir -p "$OUT_DIR"
+            cd "$TOOL_ROOT" || exit 1
+
+            run_sign() {
+              java -jar "$JAR" sign \
+                -username="$SSL_COM_ESIGNER_USERNAME" \
+                -password="$SSL_COM_ESIGNER_PASSWORD" \
+                -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID" \
+                -totp_secret="$SSL_COM_ESIGNER_TOTP_SECRET" \
+                -input_file_path="$EXE_ABS" \
+                -output_dir_path="$OUT_DIR" \
+                "$@"
+            }
+
+            run_sign
+            echo "java_exit_1=$?"
+            if [ ! -f "${OUT_DIR}/$(basename "$EXE_ABS")" ]; then
+              echo "retrying with -malware_block"
+              run_sign -malware_block
+              echo "java_exit_2=$?"
+            fi
+
+            ls -l "$OUT_DIR"
+            if [ -f "${OUT_DIR}/$(basename "$EXE_ABS")" ]; then
+              cp -f "${OUT_DIR}/$(basename "$EXE_ABS")" "$EXE_ABS"
+              echo "SIGNED_OK=true"
+            else
+              echo "SIGNED_OK=false"
+            fi
+          } 2>&1 | tee "${GITHUB_WORKSPACE}/sign-output.log"
+          if grep -q '^SIGNED_OK=true$' "${GITHUB_WORKSPACE}/sign-output.log"; then
+            echo "SIGN_EXIT_CODE=0" >> "$GITHUB_ENV"
+          else
+            echo "SIGN_EXIT_CODE=1" >> "$GITHUB_ENV"
+          fi
+          exit 0
+
+      - name: Refresh release metadata
+        if: env.SIGN_EXIT_CODE == '0'
+        shell: bash
+        env:
+          SKIP_SIGN: "true"
+        run: node scripts/sign-release.cjs
 
       - name: Upload Windows artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
@@ -182,8 +229,17 @@ jobs:
             release/*.exe
             release/*.exe.blockmap
             release/latest.yml
+            sign-output.log
           retention-days: 30
-          if-no-files-found: error
+          if-no-files-found: warn
+
+      - name: Fail if signing failed
+        if: env.SIGN_EXIT_CODE != '0'
+        shell: bash
+        run: |
+          encoded="$(tail -n 40 sign-output.log | sed -e 's/%/%25/g' -e 's/\r$//' | awk '{ printf "%s%%0A", $0 }')"
+          echo "::error::Windows signing failed. CodeSignTool output:%0A${encoded}"
+          exit 1
 
   publish:
     needs: [resolve-version, build-windows]
