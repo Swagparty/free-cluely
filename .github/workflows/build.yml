@@ -109,12 +109,6 @@ jobs:
           fi
           echo "Code-signing secrets present"
 
-      - name: Build Windows installer
-        run: npx electron-builder --win --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-
       - name: Download CodeSignTool
         shell: bash
         run: |
@@ -161,70 +155,49 @@ jobs:
           encoded="$(sed -e 's/%/%25/g' -e 's/\r$//' "${GITHUB_WORKSPACE}/creds.log" | awk '{ printf "%s%%0A", $0 }')"
           echo "::notice::eSigner credential discovery:%0A${encoded}"
 
-      - name: Sign Windows installer
-        id: sign_windows
+      - name: Package Windows app
+        run: npx electron-builder --win --dir
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Sign app executable
         shell: bash
         env:
           SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
-          SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
+          SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
+        run: bash scripts/codesign.sh "release/win-unpacked/MONA Live.exe"
+
+      - name: Build Windows installer
+        run: npx electron-builder --win --prepackaged release/win-unpacked --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Sign Windows installer
+        shell: bash
+        env:
+          SSL_COM_ESIGNER_USERNAME: ${{ secrets.SSL_COM_ESIGNER_USERNAME }}
+          SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
           SSL_COM_ESIGNER_TOTP_SECRET: ${{ secrets.SSL_COM_ESIGNER_TOTP_SECRET }}
         run: |
-          set +e
-          {
-            JAR="$(find "${CODESIGNTOOL_DIR}" -name 'code_sign_tool-*.jar' | head -n 1)"
-            CONF="$(find "${CODESIGNTOOL_DIR}" -type d -name conf | head -n 1)"
-            TOOL_ROOT="$(dirname "$CONF")"
-            EXE="$(cd "${GITHUB_WORKSPACE}" && find release -maxdepth 1 -name 'MonaLive-Setup-*.exe' | head -n 1)"
-            EXE_ABS="${GITHUB_WORKSPACE}/${EXE}"
-            OUT_DIR="${RUNNER_TEMP}/signed"
-            echo "jar=$JAR"
-            echo "tool_root=$TOOL_ROOT"
-            echo "exe=$EXE_ABS"
-            rm -rf "$OUT_DIR"
-            mkdir -p "$OUT_DIR"
-            cd "$TOOL_ROOT" || exit 1
+          EXE="$(find release -maxdepth 1 -name 'MonaLive-Setup-*.exe' | head -n 1)"
+          bash scripts/codesign.sh "$EXE"
 
-            run_sign() {
-              java -jar "$JAR" sign \
-                -username="$SSL_COM_ESIGNER_USERNAME" \
-                -password="$SSL_COM_ESIGNER_PASSWORD" \
-                -totp_secret="$SSL_COM_ESIGNER_TOTP_SECRET" \
-                -input_file_path="$EXE_ABS" \
-                -output_dir_path="$OUT_DIR" \
-                "$@"
-            }
-
-            SIGNED="${OUT_DIR}/$(basename "$EXE_ABS")"
-
-            echo "attempt 1: default credential"
-            run_sign
-            if [ ! -f "$SIGNED" ]; then
-              echo "attempt 2: default credential + malware_block"
-              run_sign -malware_block
-            fi
-            if [ ! -f "$SIGNED" ] && [ -n "${SSL_COM_ESIGNER_CREDENTIAL_ID}" ]; then
-              echo "attempt 3: explicit credential id"
-              run_sign -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID" -malware_block
-            fi
-
-            ls -l "$OUT_DIR"
-            if [ -f "$SIGNED" ]; then
-              cp -f "$SIGNED" "$EXE_ABS"
-              echo "SIGNED_OK=true"
-            else
-              echo "SIGNED_OK=false"
-            fi
-          } 2>&1 | tee "${GITHUB_WORKSPACE}/sign-output.log"
-          if grep -q '^SIGNED_OK=true$' "${GITHUB_WORKSPACE}/sign-output.log"; then
-            echo "SIGN_EXIT_CODE=0" >> "$GITHUB_ENV"
-          else
-            echo "SIGN_EXIT_CODE=1" >> "$GITHUB_ENV"
-          fi
-          exit 0
+      - name: Verify signatures
+        shell: pwsh
+        run: |
+          $targets = @((Get-ChildItem release -Filter 'MonaLive-Setup-*.exe').FullName, (Resolve-Path 'release/win-unpacked/MONA Live.exe').Path)
+          $failed = $false
+          foreach ($t in $targets) {
+            $sig = Get-AuthenticodeSignature $t
+            Write-Output "$([System.IO.Path]::GetFileName($t)): $($sig.Status) $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -ne 'Valid') { $failed = $true }
+          }
+          if ($failed) { Write-Output "::error::One or more binaries are not validly signed"; exit 1 }
 
       - name: Refresh release metadata
-        if: env.SIGN_EXIT_CODE == '0'
         shell: bash
         env:
           SKIP_SIGN: "true"
@@ -241,23 +214,6 @@ jobs:
             release/latest.yml
           retention-days: 30
           if-no-files-found: warn
-
-      - name: Upload signing log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sign-log
-          path: sign-output.log
-          retention-days: 30
-          if-no-files-found: warn
-
-      - name: Fail if signing failed
-        if: env.SIGN_EXIT_CODE != '0'
-        shell: bash
-        run: |
-          encoded="$(tail -n 40 sign-output.log | sed -e 's/%/%25/g' -e 's/\r$//' | awk '{ printf "%s%%0A", $0 }')"
-          echo "::error::Windows signing failed. CodeSignTool output:%0A${encoded}"
-          exit 1
 
   publish:
     needs: [resolve-version, build-windows]
