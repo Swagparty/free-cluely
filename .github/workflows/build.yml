@@ -239,7 +239,15 @@ jobs:
             release/*.exe
             release/*.exe.blockmap
             release/latest.yml
-            sign-output.log
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload signing log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sign-log
+          path: sign-output.log
           retention-days: 30
           if-no-files-found: warn
 
