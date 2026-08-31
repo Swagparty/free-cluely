@@ -95,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           missing=0
-          for name in SSL_COM_ESIGNER_USERNAME SSL_COM_ESIGNER_PASSWORD SSL_COM_ESIGNER_CREDENTIAL_ID SSL_COM_ESIGNER_TOTP_SECRET; do
+          for name in SSL_COM_ESIGNER_USERNAME SSL_COM_ESIGNER_PASSWORD SSL_COM_ESIGNER_TOTP_SECRET; do
             value="$(printf "%s" "${!name}" | tr -d '[:space:]')"
             if [ -z "$value" ]; then
               echo "::error::Missing GitHub secret: $name"
@@ -148,12 +148,18 @@ jobs:
           SSL_COM_ESIGNER_PASSWORD: ${{ secrets.SSL_COM_ESIGNER_PASSWORD }}
           SSL_COM_ESIGNER_CREDENTIAL_ID: ${{ secrets.SSL_COM_ESIGNER_CREDENTIAL_ID }}
         run: |
-          set -euo pipefail
+          set +e
           JAR="$(find "${CODESIGNTOOL_DIR}" -name 'code_sign_tool-*.jar' | head -n 1)"
-          echo "Listing credential IDs..."
-          java -jar "$JAR" get_credential_ids -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD"
-          echo "Credential info for $SSL_COM_ESIGNER_CREDENTIAL_ID ..."
-          java -jar "$JAR" credential_info -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD" -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID"
+          CONF="$(find "${CODESIGNTOOL_DIR}" -type d -name conf | head -n 1)"
+          cd "$(dirname "$CONF")" || exit 1
+          {
+            echo "Listing credential IDs..."
+            java -jar "$JAR" get_credential_ids -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD"
+            echo "Credential info for configured id..."
+            java -jar "$JAR" credential_info -username="$SSL_COM_ESIGNER_USERNAME" -password="$SSL_COM_ESIGNER_PASSWORD" -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID"
+          } 2>&1 | tee "${GITHUB_WORKSPACE}/creds.log"
+          encoded="$(sed -e 's/%/%25/g' -e 's/\r$//' "${GITHUB_WORKSPACE}/creds.log" | awk '{ printf "%s%%0A", $0 }')"
+          echo "::notice::eSigner credential discovery:%0A${encoded}"
 
       - name: Sign Windows installer
         id: sign_windows
@@ -183,24 +189,28 @@ jobs:
               java -jar "$JAR" sign \
                 -username="$SSL_COM_ESIGNER_USERNAME" \
                 -password="$SSL_COM_ESIGNER_PASSWORD" \
-                -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID" \
                 -totp_secret="$SSL_COM_ESIGNER_TOTP_SECRET" \
                 -input_file_path="$EXE_ABS" \
                 -output_dir_path="$OUT_DIR" \
                 "$@"
             }
 
+            SIGNED="${OUT_DIR}/$(basename "$EXE_ABS")"
+
+            echo "attempt 1: default credential"
             run_sign
-            echo "java_exit_1=$?"
-            if [ ! -f "${OUT_DIR}/$(basename "$EXE_ABS")" ]; then
-              echo "retrying with -malware_block"
+            if [ ! -f "$SIGNED" ]; then
+              echo "attempt 2: default credential + malware_block"
               run_sign -malware_block
-              echo "java_exit_2=$?"
+            fi
+            if [ ! -f "$SIGNED" ] && [ -n "${SSL_COM_ESIGNER_CREDENTIAL_ID}" ]; then
+              echo "attempt 3: explicit credential id"
+              run_sign -credential_id="$SSL_COM_ESIGNER_CREDENTIAL_ID" -malware_block
             fi
 
             ls -l "$OUT_DIR"
-            if [ -f "${OUT_DIR}/$(basename "$EXE_ABS")" ]; then
-              cp -f "${OUT_DIR}/$(basename "$EXE_ABS")" "$EXE_ABS"
+            if [ -f "$SIGNED" ]; then
+              cp -f "$SIGNED" "$EXE_ABS"
               echo "SIGNED_OK=true"
             else
               echo "SIGNED_OK=false"
